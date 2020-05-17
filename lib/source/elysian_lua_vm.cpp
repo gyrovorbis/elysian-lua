@@ -30,13 +30,13 @@ static constexpr const char _rPrint[] =
 #else
         "function rPrint(s, l, i, c) -- recursive Print (structure, limit, indent)\n"
             "l = (l) or 100; i = i or \"\"; -- default item limit, indent string\n"
-            "if (l<1) then print \"LOG_ERROR: Item limit reached.\"; return l-1 end;\n"
+            "if (l<1) then print (\"LOG_ERROR: Item limit reached.\"); return l-1 end;\n"
             "c = (c) or {}\n"
             "local ts = type(s);\n"
             "if (ts ~= \"table\" and not(ts == \"userdata\" and getmetatable(s) and "
             "getmetatable(s).__pairs)) then print (i,ts,s); return l-1 end\n"
             "if(c[s]) then\n"
-                "print(i, ts, \"CIRCULAR REFERENCE\")\n"
+                "print(i, ts, \"LOG_ERROR: Circular reference encountered,\")\n"
                 "return l-1\n"
             "end\n"
             "c[s] = true\n"
@@ -82,8 +82,8 @@ bool LuaVM::uninitialize(void) {
 
 bool LuaVM::_destroyMainThread(void) {
   bool success = true;
-  lua_gc(*_pMainThread, LUA_GCCOLLECT, 0);
-  lua_close(*_pMainThread);
+  _pMainThread->gcCollect();
+  _pMainThread->close();
   _pMainThread = nullptr;
   return success;
 }

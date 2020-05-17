@@ -20,7 +20,8 @@ set(ELYSIAN_LUA_SOURCES
     source/elysian_lua_vm.cpp
     source/elysian_lua_thread_view.cpp
     source/elysian_lua_thread.cpp
-    source/elysian_lua_reference.cpp)
+    source/elysian_lua_reference.cpp
+    source/elysian_lua_buffer.cpp)
 
 set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_forward_declarations.hpp
@@ -29,8 +30,19 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_thread_view.hpp
     api/ElysianLua/elysian_lua_thread.hpp
     api/ElysianLua/elysian_lua_object.hpp
+    api/ElysianLua/elysian_lua_Table.hpp
+    api/ElysianLua/elysian_lua_function.hpp
     api/ElysianLua/elysian_lua_reference.hpp
-    api/ElysianLua/elysian_lua_proxy.hpp)
+    api/ElysianLua/elysian_lua_proxy.hpp
+    api/ElysianLua/elysian_lua_table_proxy.hpp
+    api/ElysianLua/elysian_lua_function_result.hpp
+    api/ElysianLua/elysian_lua_operator_proxy.hpp
+    api/ElysianLua/elysian_lua_traits.hpp
+    api/ElysianLua/elysian_lua_stack.hpp
+    api/ElysianLua/elysian_lua_tuple.hpp
+    api/ElysianLua/elysian_lua_thread_view_base.hpp
+    api/ElysianLua/elysian_lua_buffer.hpp
+    api/ElysianLua/elysian_lua_metatable.hpp)
 
 set(ELYSIAN_LUA_CMAKE_PATH "lib/Lua5.4" CACHE STRING "CMake Project Path for Lua VM")
 #set_property(ELYSIAN_LUA_CMAKE_PATH PROPERTY VALUE)

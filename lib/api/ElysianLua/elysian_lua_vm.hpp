@@ -2,6 +2,7 @@
 #define ELYSIAN_LUA_VM_HPP
 
 #include <vector>
+#include "elysian_lua_function.hpp"
 
 extern "C" {
     #include <lua/lua.h>
@@ -30,6 +31,9 @@ public:
   static const AllocStats &getAllocStats(void);
   static void resetAllocStats(void);
 
+  static void setGlobalMessageHandler(Function handler);
+  static const Function& getGlobalMessageHandler(void);
+
   // lua_register - c function
   // lua_setallocf
   // lua_setWarnf
@@ -55,10 +59,14 @@ private:
   static Thread *_pMainThread;
   static std::vector<Thread *> _threads;
   static AllocStats _allocStats;
+  static Function m_globalMessageHandler;
 };
 
 inline const AllocStats &LuaVM::getAllocStats(void) { return _allocStats; }
 inline Thread *LuaVM::getMainThread(void) { return _pMainThread; }
+
+//inline void LuaVM::setGlobalMessageHandler(Function handler) { m_globalMessageHandler = std::move(handler); }
+//inline const LuaVM::Function& getGlobalMessageHandler(void) { }
 
 
 } // namespace elysian

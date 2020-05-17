@@ -1,82 +1,30 @@
-#if 0
+#include "elysian_qtest.hpp"
+#include "test_stack.hpp"
+#include "test_globals_table.hpp"
+#include "test_table.hpp"
+#include "test_table_proxy.hpp"
+#include "test_function.hpp"
+#include "test_buffer.hpp"
+#include "test_operators.hpp"
+#include "test_thread_view.hpp"
 
-#include <ElysianLua/elysian_lua_vm.hpp>
-#include <ElysianLua/elysian_lua_thread.hpp>
-#include <QCoreApplication>
-#include <cstdio>
-#include <cstdlib>
-#include <QDebug>
-#include <QtTest/QtTest>
+using namespace elysian;
+using namespace elysian::lua::test;
 
-using namespace elysian::lua;
+int main(int argc, char* argv[]) {
 
-/* SHIT TO TEST
- * 1 - assign util functions
-    a. atpanic
-    b. warn
-    c. file I/O
-    d. allocator
-  2 - Basic Stack manipulation
-* 3 - arbitrary code execution
-*/
+    UnitTestSuite testSuite;
+    testSuite.enqueueTestSet(new StackTestSet);
+    testSuite.enqueueTestSet(new GlobalsTableTestSet);
+    testSuite.enqueueTestSet(new TableTestSet);
+    testSuite.enqueueTestSet(new StackTableTestSet);
+    testSuite.enqueueTestSet(new StaticTableTestSet);
+    testSuite.enqueueTestSet(new StaticStackTableTestSet);
+    testSuite.enqueueTestSet(new TableProxyTestSet);
+    testSuite.enqueueTestSet(new OperatorProxyTestSet);
+    testSuite.enqueueTestSet(new FunctionTestSet);
+    testSuite.enqueueTestSet(new BufferTestSet);
+    testSuite.enqueueTestSet(new ThreadViewTestSet);
 
-#if 0
-ThreadView(lua_State* state);
-
-lua_State *getState(void) const;
-
-// NEWFANGLED-ASS STACK API
-int getTop(void) const;
-int toAbsStackIndex(int index) const;
-int toRelativeStackIndex(int index) const;
-
-operator lua_State *(void)const;
-
-// void push(const LuaVariant &variant);
-void push(const char *string); // gracefully push nil for nullptr
-void push(const char *pFmt, ...);
-void push(const char *pFmt, va_list vaList);
-void push(const std::nullptr_t null);
-void push(void); // doesn't do shit
-void push(lua_Integer integer);
-void push(lua_Number number);
-void push(const char number);
-void push(const bool boolean);
-void push(void *lightUd);
-#endif
-
-class ThreadViewTest: public QObject {
-    Q_OBJECT
-private slots:
-    void initialize(void);
-
-    void uninitialize(void);
-private:
-
-    ThreadView* m_pThreadView = nullptr;
-
-};
-
-void ThreadViewTest::initialize(void) {
-    Q_VERIFY(LuaVM::initialize());
+    return testSuite.exec(argc, argv);
 }
-
-void ThreadViewTest::uninitialize(void) {
-    Q_VERIFY(LuaVM::uninitialize());
-}
-
-
-#if 0
-int main(int argc, char *argv[]) {
-  LuaVM::initialize();
-  printf("HELLO WORLD!!!");
-  qDebug() << "Fuck off";
-  LuaVM::uninitialize();
-  fflush(stdout);
-}
-#else
-    QTEST_MAIN(ThreadViewTest)
-#include "threadviewtest.moc"
-#endif
-
-#endif

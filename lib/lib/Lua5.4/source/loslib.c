@@ -91,7 +91,7 @@
 
 /* ISO C definitions */
 #define l_gmtime(t,r)		((void)(r)->tm_sec, gmtime(t))
-#define l_localtime(t,r)  	((void)(r)->tm_sec, localtime(t))
+#define l_localtime(t,r)	((void)(r)->tm_sec, localtime(t))
 
 #endif				/* } */
 
@@ -196,7 +196,7 @@ static int os_clock (lua_State *L) {
 */
 
 /*
-** About the overflow check: an overflow cannot occurr when time
+** About the overflow check: an overflow cannot occur when time
 ** is represented by a lua_Integer, because either lua_Integer is
 ** large enough to represent all int fields or it is not large enough
 ** to represent a time that cause a field to overflow.  However, if

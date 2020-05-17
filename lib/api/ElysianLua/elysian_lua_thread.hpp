@@ -18,7 +18,7 @@ public:
   // getMetaMethod
   // setMetaMethod
   //
-  // all generic stack operations
+  // all generic stack operationshow
   // coroutine shit
 
   // doFile
@@ -34,13 +34,14 @@ public:
   Thread(const char *pName);
 
 private:
-  static void *_luaAlloc(void *ud, void *ptr, size_t osize, size_t nsize);
+    static void *_luaAlloc(void *ud, void *ptr, size_t osize, size_t nsize);
 
-  char _name[ELYSIAN_LUA_THREAD_NAME_SIZE];
+    char _name[ELYSIAN_LUA_THREAD_NAME_SIZE];
+    Thread*  m_parentState = nullptr;
 
-  // std::vector<LuaStackFrame> _stackFrames;
-  uint64_t _allocBytes = 0;
-  uint64_t _allocCount = 0;
+    // std::vector<LuaStackFrame> _stackFrames;
+    uint64_t _allocBytes = 0;
+    uint64_t _allocCount = 0;
 };
 
 inline Thread *Thread::fromState(lua_State *pState) {

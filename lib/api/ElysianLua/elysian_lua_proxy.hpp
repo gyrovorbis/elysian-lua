@@ -2,11 +2,12 @@
 #define ELYSIAN_LUA_PROXY_HPP
 
 #include <tuple>
+#include <ElysianLua/elysian_lua_traits.hpp>
+#include "elysian_lua_function.hpp"
 
 namespace elysian::lua {
 
-class ThreadView;
-
+class ThreadViewBase;
 
 template<typename CRTP>
 class Proxy {
@@ -14,82 +15,34 @@ public:
 
     template<typename T>
     operator T() const;
+
+    int push(void) const;
+    bool isValid(void) const;
+
    // template<typename T>
    // operator T&() const;
 
-    ThreadView* getThread(void) const;
+    ThreadViewBase* getThread(void) const;
 
 };
 
-
-template<typename T, typename Key>
-class TableProxy: public Proxy<TableProxy<T,Key>> {
+class StackProxy: public Proxy<StackProxy> {
 public:
+    StackProxy(ThreadViewBase* m_pThreadViewBase, int index);
 
-    using Parent = Proxy<TableProxy<T,Key>>;
-
-    template<typename K>
-    using ChainedTuple = decltype(std::tuple_cat(m_keys, std::tuple<K>()));
-
-    TableProxy(T table, Key key):
-        m_key(std::move(key)), m_table(std::move(table)) {}
-
-    template<typename K>
-    auto concatTuple(K key) const {
-        return std::tuple_cat(m_key, std::tuple(key));
-    }
-
-    template <std::size_t O, std::size_t... Is>
-    std::index_sequence<(O + Is)...> add_offset(std::index_sequence<Is...>) const {
-        return {};
-    }
-
-    template<typename First, typename... Rest>
-    inline auto clippedIndexSequence(const std::tuple<First, Rest...>& key) const {
-        return add_offset<1>(std::index_sequence_for<Rest...>());
-    }
-
-    template<typename T>
-    T get(void) const {
-        T value;
-        const int oldTop = getThread()->getTop();
-        m_table.getField(std::get<0>(m_key));   //Always do the first one via the table, which is optimized over the generic thread accesses!!
-        if constexpr(std::tuple_size<Key>::value > 1) {
-            getThread()->getTableMulti(-1, m_key, clippedIndexSequence(m_key));
-        }
-
-        getThread()->pull(value);
-        getThread()->pop(getThread()->getTop() - oldTop);
-        return value;
-    }
-
-    template<typename K2>
-    auto operator[](K2 key) const {
-        return TableProxy<T, decltype(concatTuple(key))>(m_table, concatTuple(key));
-    }
-
-    template<typename V>
-    const TableProxy<T, Key>& operator=(V&& value) const {
-        //Do a direct set in place
-        if constexpr(std::tuple_size<Key>::value == 1) {
-            m_table.setField(std::get<0>(m_key), std::forward<V>(value));
-        } else {
-            //Push first value to be optimal
-            const int oldTop = getThread()->getTop();
-            m_table.getField(std::get<0>(m_key));
-            getThread()->setTableMulti(-1, m_key, clippedIndexSequence(m_key), std::forward<V>(value));
-            getThread()->pop(getThread()->getTop() - oldTop);
-        }
-        return *this;
-    }
-
-    ThreadView* getThread(void) const { return m_table.getThread(); }
-
+    int getIndex(void) const;
+    ThreadViewBase* getThread(void) const;
 private:
-    Key m_key;
-    T m_table;
+    ThreadViewBase* m_pThreadViewBase;
+    int m_absIndex;
+
 };
 
+
+template<typename CRTP>
+inline int Proxy<CRTP>::push(void) const {
+    return static_cast<CRTP*>(this)->push(getThread());
+}
 
 template<typename CRTP>
 template<typename T>
@@ -105,10 +58,26 @@ inline Proxy<CRTP>::operator T&() const {
 }*/
 
 template<typename CRTP>
-inline ThreadView* Proxy<CRTP>::getThread(void) const {
+inline ThreadViewBase* Proxy<CRTP>::getThread(void) const {
     return static_cast<const CRTP*>(this)->getThread();
 }
 
+template<typename CRTP>
+inline bool Proxy<CRTP>::isValid(void) const {
+    return static_cast<const CRTP*>(this)->isValid();
+}
+
+
+namespace stack_impl {
+
+template<typename P>
+struct proxy_stack_pusher {
+    static int push(const ThreadViewBase* pBase, StackRecord& record, const P& proxy) {
+        return proxy.push(pBase);
+    }
+};
+
+}
 
 }
 

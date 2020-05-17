@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+option(LUA_USE_APICHECK "Enable Lua API argument validation" OFF)
+
 project(Lua5_4 VERSION 5.4 DESCRIPTION "Lua 5.4 VM" LANGUAGES C)
 
 set(LUA_SOURCES
@@ -43,8 +45,6 @@ set(LUA_SOURCES
 
 #option(ELYSIAN_LUA_LUA_CMAKE_PATH, "Path to Lua Interpreter CMake Project Root" CACHE STRING "lib/Lua5.4")
 
-
-
 add_library(libLua STATIC
     ${LUA_SOURCES}
     ${LUA_INCLUDES})
@@ -61,3 +61,10 @@ target_include_directories(libLua
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/lua
 )
+
+if(LUA_USE_APICHECK)
+    target_compile_definitions(libLua
+        PUBLIC
+            LUA_USE_APICHECK
+    )
+endif()

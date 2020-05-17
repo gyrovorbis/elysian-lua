@@ -12,8 +12,17 @@ set(CMAKE_AUTOIC ON)
 find_package(Qt5 COMPONENTS Core Test REQUIRED)
 
 add_executable(ElysianLuaTests
-#    main.cpp
-    test_thread_view.cpp)
+    elysian_qtest.hpp
+    test_base.hpp
+    test_stack.hpp
+    test_globals_table.hpp
+    test_table.hpp
+    test_table_proxy.hpp
+    test_function.hpp
+    test_buffer.hpp
+    test_operators.hpp
+    test_thread_view.hpp
+    main.cpp)
 
 target_link_libraries(ElysianLuaTests
     libLua
