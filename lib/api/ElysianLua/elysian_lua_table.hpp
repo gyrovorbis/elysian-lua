@@ -170,19 +170,19 @@ inline int TableBase<RefType, GlobalsTable>::validateFunc(void) const {
 
 template<typename RefType, bool GlobalsTable>
 inline void TableBase<RefType, GlobalsTable>::pushFunc(void) const {
-    getRef().push(getThread());
+    this->getRef().push(this->getThread());
 }
 
 template<typename RefType, bool GlobalsTable>
 template<typename M>
 inline int TableBase<RefType, GlobalsTable>::setMetaTable(M&& meta) const {
     int retVal = 0;
-    const int stackIndex = getRef().makeStackIndex();
-    if(getThread()->push(std::forward<M>(meta))) {
-        retVal = getThread()->setMetaTable(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    if(this->getThread()->push(std::forward<M>(meta))) {
+        retVal = this->getThread()->setMetaTable(stackIndex);
     }
 
-    getRef().doneWithStackIndex(stackIndex);
+    this->getRef().doneWithStackIndex(stackIndex);
     return retVal;
 }
 
@@ -190,11 +190,11 @@ template<typename RefType, bool GlobalsTable>
 template<typename M>
 inline M TableBase<RefType, GlobalsTable>::getMetaTable(void) const {
     M meta;
-    getRef().push(getThread());
-    if(getThread()->getMetaTable(-1)) {
-        getThread()->pull(meta);
+    this->getRef().push(this->getThread());
+    if(this->getThread()->getMetaTable(-1)) {
+        this->getThread()->pull(meta);
     }
-    getThread()->pop();
+    this->getThread()->pop();
     return meta;
 }
 
@@ -205,32 +205,32 @@ inline TableBase<RefType, GlobalsTable>::operator bool() const {
 
 template<typename RefType, bool GlobalsTable>
 inline bool TableBase<RefType, GlobalsTable>::isValid(void) const {
-    return getRef().isValid();
+    return this->getRef().isValid();
 }
 
 template<typename RefType, bool GlobalsTable>
 inline lua_Integer TableBase<RefType, GlobalsTable>::getLength(void) const {
-    const int stackIndex = getRef().makeStackIndex();
-    lua_Integer length = getThread()->length(stackIndex);
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    lua_Integer length = this->getThread()->length(stackIndex);
+    this->getRef().doneWithStackIndex(stackIndex);
     return length;
 }
 
 template<typename RefType, bool GlobalsTable>
 inline lua_Unsigned TableBase<RefType, GlobalsTable>::getLengthRaw(void) const {
-    const int stackIndex = getRef().makeStackIndex();
-    lua_Unsigned length = getThread()->lengthRaw(stackIndex);
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    lua_Unsigned length = this->getThread()->lengthRaw(stackIndex);
+    this->getRef().doneWithStackIndex(stackIndex);
     return length;
 }
 
 template<typename RefType, bool GlobalsTable>
 inline int TableBase<RefType, GlobalsTable>::getType(void) const {
     int type = LUA_TNONE;
-    if(getThread()) {
-        const int index = getRef().makeStackIndex();
-        type = getThread()->getType(index);
-        getRef().doneWithStackIndex(index);
+    if(this->getThread()) {
+        const int index = this->getRef().makeStackIndex();
+        type = this->getThread()->getType(index);
+        this->getRef().doneWithStackIndex(index);
     }
     return type;
 }
@@ -239,12 +239,12 @@ template<typename RefType, bool GlobalsTable>
 template<typename K>
 inline int TableBase<RefType, GlobalsTable>::getField(K&& key) const {
     if constexpr(GlobalsTable) {
-        return getThread()->getGlobalsTable(std::forward<K>(key));
+        return this->getThread()->getGlobalsTable(std::forward<K>(key));
     } else {
-        const int stackIndex = getRef().makeStackIndex();
-        const int retVal = getThread()->getTable(stackIndex, std::forward<K>(key));
+        const int stackIndex = this->getRef().makeStackIndex();
+        const int retVal = this->getThread()->getTable(stackIndex, std::forward<K>(key));
         if constexpr(!RefType::onStack()) {
-            getThread()->remove(stackIndex);
+            this->getThread()->remove(stackIndex);
         }
         return retVal;
     }
@@ -255,11 +255,11 @@ template<typename RefType, bool GlobalsTable>
 template<typename K, typename V>
 inline int TableBase<RefType, GlobalsTable>::getField(K&& key, V& value) const {
     if constexpr(GlobalsTable) {
-        return getThread()->getGlobalsTable(std::forward<K>(key), value);
+        return this->getThread()->getGlobalsTable(std::forward<K>(key), value);
     } else {
-        const int stackIndex = getRef().makeStackIndex();
-        const int retVal = getThread()->getTable(stackIndex, std::forward<K>(key), value);
-        getRef().doneWithStackIndex(stackIndex);
+        const int stackIndex = this->getRef().makeStackIndex();
+        const int retVal = this->getThread()->getTable(stackIndex, std::forward<K>(key), value);
+        this->getRef().doneWithStackIndex(stackIndex);
         return retVal;
     }
 }
@@ -267,9 +267,9 @@ inline int TableBase<RefType, GlobalsTable>::getField(K&& key, V& value) const {
 template<typename RefType, bool GlobalsTable>
 template<typename K, typename V>
 inline int TableBase<RefType, GlobalsTable>::getFieldRaw(K&& key, V& value) const {
-    const int stackIndex = getRef().makeStackIndex();
-    const int retVal = getThread()->getTableRaw(stackIndex, std::forward<K>(key), value);
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    const int retVal = this->getThread()->getTableRaw(stackIndex, std::forward<K>(key), value);
+    this->getRef().doneWithStackIndex(stackIndex);
     return retVal;
 }
 
@@ -277,28 +277,28 @@ template<typename RefType, bool GlobalsTable>
 template<typename K, typename V>
 inline void TableBase<RefType, GlobalsTable>::setField(K&& key, V&& value) const {
     if constexpr(GlobalsTable) {
-        getThread()->setGlobalsTable(std::forward<K>(key), std::forward<V>(value));
+        this->getThread()->setGlobalsTable(std::forward<K>(key), std::forward<V>(value));
     } else {
-        const int stackIndex = getRef().makeStackIndex();
-        getThread()->setTable(stackIndex, std::forward<K>(key), std::forward<V>(value));
-        getRef().doneWithStackIndex(stackIndex);
+        const int stackIndex = this->getRef().makeStackIndex();
+        this->getThread()->setTable(stackIndex, std::forward<K>(key), std::forward<V>(value));
+        this->getRef().doneWithStackIndex(stackIndex);
     }
 }
 
 template<typename RefType, bool GlobalsTable>
 template<typename K, typename V>
 inline void TableBase<RefType, GlobalsTable>::setFieldRaw(K&& key, V&& value) const {
-    const int stackIndex = getRef().makeStackIndex();
-    getThread()->setTableRaw(stackIndex, std::forward<K>(key), std::forward<V>(value));
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    this->getThread()->setTableRaw(stackIndex, std::forward<K>(key), std::forward<V>(value));
+    this->getRef().doneWithStackIndex(stackIndex);
 }
 
 template<typename RefType, bool GlobalsTable>
 template<typename F>
 void TableBase<RefType, GlobalsTable>::iterate(F&& iterator) const {
-    const int stackIndex = getRef().makeStackIndex();
-    getThread()->iterateTable(stackIndex, std::forward<F>(iterator));
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    this->getThread()->iterateTable(stackIndex, std::forward<F>(iterator));
+    this->getRef().doneWithStackIndex(stackIndex);
 }
 
 template<typename RefType, bool GlobalsTable>
@@ -313,7 +313,7 @@ template<typename RefType, bool GlobalsTable>
 template<typename RefType2, bool GlobalsTable2>
 inline bool TableBase<RefType, GlobalsTable>::operator==(const TableBase<RefType2, GlobalsTable2>& rhs) const {
     bool result = false;
-    lua_State* pLState = getThread()? getThread()->getState() : nullptr;
+    lua_State* pLState = this->getThread()? this->getThread()->getState() : nullptr;
     lua_State* pRState = rhs.getThread()? rhs.getThread()->getState() : nullptr;
 
     if(pLState == pRState) {
@@ -324,16 +324,16 @@ inline bool TableBase<RefType, GlobalsTable>::operator==(const TableBase<RefType
             if(isValid() && rhs.isValid()) {
                 // Do fast value-check
                 if constexpr(std::is_same_v<RefType, RefType2>) {
-                    if(getRef() == rhs.getRef()) {
+                    if(this->getRef() == rhs.getRef()) {
                         return true;
                     }
                 }
 
-                const int stackIndex1 = getRef().makeStackIndex();
+                const int stackIndex1 = this->getRef().makeStackIndex();
                 const int stackIndex2 = rhs.getRef().makeStackIndex();
-                result = getThread()->compare(stackIndex1, stackIndex2, LUA_OPEQ);
+                result = this->getThread()->compare(stackIndex1, stackIndex2, LUA_OPEQ);
                 rhs.getRef().doneWithStackIndex(stackIndex2);
-                getRef().doneWithStackIndex(stackIndex1);
+                this->getRef().doneWithStackIndex(stackIndex1);
             } else if(!isValid() && !rhs.isValid()) {
                 result = true;
             }
@@ -346,15 +346,15 @@ template<typename RefType, bool GlobalsTable>
 template<typename T, typename K>
 inline bool TableBase<RefType, GlobalsTable>::operator==(const TableProxy<T, K>& rhs) const {
     bool equal = false;
-    if(getThread() == rhs.getThread()) {
-        const int index1 = getRef().makeStackIndex();
+    if(this->getThread() == rhs.getThread()) {
+        const int index1 = this->getRef().makeStackIndex();
 
-        if(getThread()->push(rhs)) {
-            equal = getThread()->compare(index1, -1, LUA_OPEQ);
-            getThread()->pop();
+        if(this->getThread()->push(rhs)) {
+            equal = this->getThread()->compare(index1, -1, LUA_OPEQ);
+            this->getThread()->pop();
         }
 
-        getRef().doneWithStackIndex(index1);
+        this->getRef().doneWithStackIndex(index1);
     }
     return equal;
 }
@@ -392,15 +392,15 @@ TableBase<RefType, GlobalsTable>::operator=(const TableBase<RefType2, GlobalsTab
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
-            getRef().copy(rhs.getThread(), rhs.getRef());
+            this->getRef().copy(rhs.getThread(), rhs.getRef());
         } else if constexpr(RefType::onStack() && RefType2::onStack()) {
-            getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
+            this->getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
         } else { // Manually copy via stack
-            getThread()->push(rhs);
-            getRef().pull(getThread());
+            this->getThread()->push(rhs);
+            this->getRef().pull(this->getThread());
         }
     } else {
-        getRef().destroy(getThread());
+        this->getRef().destroy(this->getThread());
     }
     return *this;
 }
@@ -415,22 +415,22 @@ TableBase<RefType, GlobalsTable>::operator=(TableBase<RefType2, GlobalsTable2>&&
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
-            getRef().copy(rhs.getThread(), std::move(rhs.getRef()));
+            this->getRef().copy(rhs.getThread(), std::move(rhs.getRef()));
         } else if constexpr(RefType::onStack() && RefType2::onStack()) {
-            getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
+            this->getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
         } else { // Manually copy via stack
-            getThread()->push(rhs);
-            getRef().pull(getThread());
+            this->getThread()->push(rhs);
+            this->getRef().pull(this->getThread());
         }
     } else {
-        getRef().destroy(getThread());
+        this->getRef().destroy(this->getThread());
     }
     return *this;
 }
 
 template<typename RefType, bool GlobalsTable>
 const TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(std::nullptr_t) {
-    getRef().release();
+    this->getRef().release();
     return *this;
 }
 
@@ -442,10 +442,10 @@ TableBase<RefType, GlobalsTable>::operator=(const TableProxy<T, Key>& proxy) {
 
     if(proxy.isValid()) {
         if(proxy.getThread()->push(proxy)) {
-            getRef().pull(proxy.getThread());
+            this->getRef().pull(proxy.getThread());
         }
     } else {
-        getRef().destroy(getThread());
+        this->getRef().destroy(this->getThread());
     }
     return *this;
 }
@@ -454,9 +454,9 @@ template<typename RefType, bool GlobalsTable>
 template<typename... Args>
 const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator+=(const LuaTableValues<Args...>& values) const {
-    const int stackIndex = getRef().makeStackIndex();
-    getThread()->appendTable(stackIndex, values);
-    getRef().doneWithStackIndex(stackIndex);
+    const int stackIndex = this->getRef().makeStackIndex();
+    this->getThread()->appendTable(stackIndex, values);
+    this->getRef().doneWithStackIndex(stackIndex);
     return *this;
 }
 
@@ -466,7 +466,7 @@ const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator+=(const TableBase<RefType2, GlobalsTable2>& rhs) const {
 
     if(isValid() && rhs.isValid()) {
-        const int dstTableIndex = getRef().makeStackIndex();
+        const int dstTableIndex = this->getRef().makeStackIndex();
 
         auto copyTableEntries = [&](auto Fn) {
             rhs.iterate([&]() {
@@ -475,20 +475,20 @@ TableBase<RefType, GlobalsTable>::operator+=(const TableBase<RefType2, GlobalsTa
 
                 Fn();
 
-                getThread()->setTable(dstTableIndex);
+                this->getThread()->setTable(dstTableIndex);
 
             });
         };
 
-        if(getThread() == rhs.getThread()) {
+        if(this->getThread() == rhs.getThread()) {
             copyTableEntries([](){});
         } else {
             copyTableEntries([&](){
-                rhs.getThread()->xmove(getThread()->getState(), 2);
+                rhs.getThread()->xmove(this->getThread()->getState(), 2);
             });
         }
 
-        getRef().doneWithStackIndex(dstTableIndex);
+        this->getRef().doneWithStackIndex(dstTableIndex);
     }
 
     return *this;

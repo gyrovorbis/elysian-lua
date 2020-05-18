@@ -135,12 +135,12 @@ inline FunctionBase<Ref>::FunctionBase(FunctionBase<Ref2>&& rhs):
 
 template<typename Ref>
 inline bool FunctionBase<Ref>::isValid(void) const {
-    return getThread() && m_ref.isValid();
+    return this->getThread() && this->m_ref.isValid();
 }
 
 template<typename Ref>
 inline void FunctionBase<Ref>::pushFunc(void) const {
-    m_ref.push();
+    this->m_ref.push();
 }
 
 template<typename Ref>
@@ -168,10 +168,10 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(const FunctionBase<
     if(rhs.isValid()) {
        //Let the reference decide how to handle it
        if constexpr(std::is_same_v<Ref, Ref2>) {
-           m_ref.copy(rhs.getThread(), rhs.m_ref);
+           this->m_ref.copy(rhs.getThread(), rhs.m_ref);
        } else { // Manually copy via stack
-           if(getThread()->push(rhs)) {
-                m_ref.pull(getThread());
+           if(this->getThread()->push(rhs)) {
+                this->m_ref.pull(this->getThread());
            } else {
                 *this = nullptr;
            }
@@ -188,10 +188,10 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(FunctionBase<Ref2>&
     if(rhs.isValid()) {
        //Let the reference decide how to handle it
        if constexpr(std::is_same_v<Ref, Ref2>) {
-           m_ref.copy(rhs.getThread(), std::move(rhs.m_ref));
+           this->m_ref.copy(rhs.getThread(), std::move(rhs.m_ref));
        } else { // Manually copy via stack
-           if(getThread()->push(rhs)) {
-                m_ref.pull(getThread());
+           if(this->getThread()->push(rhs)) {
+                this->m_ref.pull(this->getThread());
            } else {
                *this = nullptr;
            }
@@ -204,7 +204,7 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(FunctionBase<Ref2>&
 
 template<typename Ref>
 inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(std::nullptr_t) {
-    m_ref.destroy(getThread());
+    this->m_ref.destroy(this->getThread());
     return *this;
 }
 
@@ -224,13 +224,13 @@ inline bool FunctionBase<Ref>::operator==(R&& rhs) const {
     bool equal = false;
     if(!isValid() && !rhs.isValid()) { //two empty function refs are equal
         equal = true;
-    } else if(getThread() == rhs.getThread()) {
-        if(getThread()->push(rhs)) {
-            if(getThread()->push(*this)) {
-                equal = getThread()->compare(-1, -2, LUA_OPEQ);
-                getThread()->pop();
+    } else if(this->getThread() == rhs.getThread()) {
+        if(this->getThread()->push(rhs)) {
+            if(this->getThread()->push(*this)) {
+                equal = this->getThread()->compare(-1, -2, LUA_OPEQ);
+                this->getThread()->pop();
             }
-            getThread()->pop();
+            this->getThread()->pop();
         }
     }
     return equal;

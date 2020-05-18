@@ -112,7 +112,7 @@ public:
     {}
 
     const Key& getKey(void) const {
-        return getLastKey();
+        return this->getLastKey();
     }
 
     template<typename V>

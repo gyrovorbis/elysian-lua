@@ -25,58 +25,59 @@ public:
     StatefulRefBase(const StatefulRefBase<RefType, StateType>& rhs):
         StateType(static_cast<const StateType&>(rhs))
     {
-        RefType::copy(getThread(), static_cast<const RefType&>(rhs));
+        RefType::copy(this->getThread(), static_cast<const RefType&>(rhs));
     }
 
     StatefulRefBase(StatefulRefBase<RefType, StateType>&& rhs):
         StateType(static_cast<StateType&&>(std::move(rhs)))
     {
-        RefType::move(getThread(), static_cast<RefType&&>(std::move(rhs)));
+        RefType::move(this->getThread(), static_cast<RefType&&>(std::move(rhs)));
     }
 
     StatefulRefBase<RefType, StateType>&
     operator=(const StatefulRefBase<RefType, StateType>& rhs) {
         release();
-        setThread(rhs.getThread());
-        RefType::copy(getThread(), static_cast<const RefType&>(rhs));
+        this->setThread(rhs.getThread());
+        RefType::copy(this->getThread(), static_cast<const RefType&>(rhs));
         return *this;
     }
 
     StatefulRefBase<RefType, StateType>&
     operator=(StatefulRefBase<RefType, StateType>&& rhs) {
         release();
-        setThread(rhs.getThread());
-        RefType::move(getThread(), static_cast<RefType&&>(rhs));
+        this->setThread(rhs.getThread());
+        RefType::move(this->getThread(), static_cast<RefType&&>(rhs));
         rhs.setThread(nullptr);
         return *this;
     }
 
     bool operator==(const StatefulRefBase<RefType, StateType>& rhs) const {
-        return (getThread() == rhs.getThread() && compare(getThread(), rhs));
+        return this->getThread() == rhs.getThread()
+            && this->compare(this->getThread(), rhs);
     }
 
     ~StatefulRefBase(void) { release(); }
 
     bool release(void) {
-        bool retVal = RefType::release(getThread());
+        bool retVal = RefType::release(this->getThread());
         StateType::clear();
         return retVal;
     }
 
     bool isValid(void) const {
-        return getThread() != nullptr
-                && getThread()->isValid()
-                && RefType::isValid(getThread());
+        return this->getThread() != nullptr
+                && this->getThread()->isValid()
+                && RefType::isValid(this->getThread());
     }
 
     bool fromStackIndex(const ThreadViewBase* pThread, int index) {
-        lua_State* pState1 = getThread()? getThread()->getState() : nullptr;
+        lua_State* pState1 = this->getThread()? this->getThread()->getState() : nullptr;
         lua_State* pState2 = pThread? pThread->getState() : nullptr;
 
         assert(!(StateType::staticState() && RefType::stackStorage() && pState1 != pState2));
         //Cannot store static stack references from other threads!!!
         release();
-        setThread(pThread);
+        this->setThread(pThread);
         return RefType::fromStackIndex(pThread, index);
     }
 
@@ -89,9 +90,9 @@ public:
             if constexpr(!RefType::stackStorage()) {
                 retVal = RefType::push(pThread);
             } else {
-                RefType::push(getThread());
-                if(getThread() != pThread) {
-                    getThread()->xmove(pThread->getState(), 1);
+                RefType::push(this->getThread());
+                if(this->getThread() != pThread) {
+                    this->getThread()->xmove(pThread->getState(), 1);
                 }
                 retVal = true;
             }
@@ -101,16 +102,16 @@ public:
 
     bool pull(const ThreadViewBase* pThread) {
         release();
-        setThread(pThread);
+        this->setThread(pThread);
         return RefType::pull(pThread);
     }
 
     int makeStackIndex(void) const {
-        return RefType::makeStackIndex(getThread());
+        return RefType::makeStackIndex(this->getThread());
     }
 
     bool doneWithStackIndex(int index) const {
-        return RefType::doneWithStackIndex(getThread(), index);
+        return RefType::doneWithStackIndex(this->getThread(), index);
     }
 
 };
@@ -277,7 +278,7 @@ inline const StatefulReference<RefType>& StatefulReference<RefType>::operator=(S
 }
 template<typename RefType>
 bool StatefulReference<RefType>::operator==(const StatefulReference<RefType>& rhs) const {
-    return (m_pThread == rhs.m_pThread && compare(m_pThread, rhs));
+    return (m_pThread == rhs.m_pThread && this->compare(m_pThread, rhs));
 }
 
 template<typename RefType>
