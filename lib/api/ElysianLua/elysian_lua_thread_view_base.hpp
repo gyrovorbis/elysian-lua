@@ -800,7 +800,7 @@ inline bool ThreadViewBase::isYieldable(void) const { return lua_isyieldable(m_p
 
 template<typename K>
 inline int ThreadViewBase::getGlobalsTable(K&& key) const {
-    if constexpr(getType<std::decay<K>::type>() == LUA_TSTRING) {
+    if constexpr(getType<typename std::decay<K>::type>() == LUA_TSTRING) {
         return lua_getglobal(m_pState, toCString(key));
     } else {
         pushGlobalsTable();
