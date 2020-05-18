@@ -264,7 +264,7 @@ template<typename R, typename... Args>
 inline FunctionBase<Ref>::operator std::function<R(Args...)>() const {
     return [&](Args... args) -> R {
         return *this(args...);
-    }
+    };
 }
 
 namespace stack_impl {

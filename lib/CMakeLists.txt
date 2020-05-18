@@ -30,7 +30,7 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_thread_view.hpp
     api/ElysianLua/elysian_lua_thread.hpp
     api/ElysianLua/elysian_lua_object.hpp
-    api/ElysianLua/elysian_lua_Table.hpp
+    api/ElysianLua/elysian_lua_table.hpp
     api/ElysianLua/elysian_lua_function.hpp
     api/ElysianLua/elysian_lua_reference.hpp
     api/ElysianLua/elysian_lua_proxy.hpp

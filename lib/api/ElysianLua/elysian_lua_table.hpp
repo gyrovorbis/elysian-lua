@@ -37,7 +37,7 @@ auto operator<<(TableBase<RefType, Globals>& lhs, RType&& rhs) { return Operator
 template<typename RefType, bool Globals, typename RType>
 auto operator>>(TableBase<RefType, Globals>& lhs, RType&& rhs) { return OperatorProxy(lhs, rhs, OperatorType::Shr); }
 
-template<typename RefType, bool GlobalsTable=false>
+template<typename RefType, bool GlobalsTable>
 class TableBase:
         public Object<RefType>,
         public Callable<TableBase<RefType, GlobalsTable>>

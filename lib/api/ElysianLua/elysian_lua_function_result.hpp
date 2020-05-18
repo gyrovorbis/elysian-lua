@@ -147,7 +147,7 @@ std::tuple<Args...>> FunctionResult::get(int offset) const {
     assert(getFirstIndex() + offset + sizeof...(Args) <= getThread()->getTop());
 
     std::tuple<Args...> retValues;
-    const auto indices = std::index_sequence_for<Args...>;
+    const auto indices = std::index_sequence_for<Args...>{};
 
     (std::get<indices>(retValues) = getThread()->toValue<decltype(std::get<indices>(retValues))>(getFirstIndex() + offset))...;
     return retValues;
