@@ -521,7 +521,7 @@ namespace internal {
 template<typename T>
 constexpr inline int ThreadViewBase::getType(void) { return LUA_TNONE; }
 template<> constexpr inline int ThreadViewBase::getType<void>(void) { return LUA_TNONE; }
-template<> constexpr inline int ThreadViewBase::getType<nullptr_t>(void) { return LUA_TNIL; }
+template<> constexpr inline int ThreadViewBase::getType<std::nullptr_t>(void) { return LUA_TNIL; }
 template<> constexpr inline int ThreadViewBase::getType<void*>(void) { return LUA_TLIGHTUSERDATA; }
 template<> constexpr inline int ThreadViewBase::getType<lua_Integer>(void) { return LUA_TNUMBER; }
 template<> constexpr inline int ThreadViewBase::getType<lua_Number>(void) { return LUA_TNUMBER; }
@@ -800,7 +800,7 @@ inline bool ThreadViewBase::isYieldable(void) const { return lua_isyieldable(m_p
 
 template<typename K>
 inline int ThreadViewBase::getGlobalsTable(K&& key) const {
-    if constexpr(getType<std::decay<K>::type>() == LUA_TSTRING) {
+    if constexpr(getType<typename std::decay<K>::type>() == LUA_TSTRING) {
         return lua_getglobal(m_pState, toCString(key));
     } else {
         pushGlobalsTable();

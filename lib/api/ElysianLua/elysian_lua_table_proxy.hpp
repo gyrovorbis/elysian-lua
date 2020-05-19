@@ -56,8 +56,8 @@ public:
 
     int push(const ThreadViewBase* pThread) const;
 
-    template<typename T>
-    T get(void) const;
+    template<typename T2>
+    T2 get(void) const;
 
     bool isValid(void) const;
 
@@ -112,7 +112,7 @@ public:
     {}
 
     const Key& getKey(void) const {
-        return getLastKey();
+        return this->getLastKey();
     }
 
     template<typename V>

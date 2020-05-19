@@ -1,6 +1,8 @@
 #ifndef ELYSIAN_LUA_OPERATOR_PROXY_HPP
 #define ELYSIAN_LUA_OPERATOR_PROXY_HPP
 
+#include <cstdint>
+
 #include "elysian_lua_proxy.hpp"
 
 namespace elysian::lua {

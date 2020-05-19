@@ -259,7 +259,8 @@ struct index_sequence_stack_checker {
     template<std::size_t... Is>
     static bool check(const ThreadViewBase* pBase, StackRecord& record, int index, std::index_sequence<Is...>) {
         const int absIndex = pBase->toAbsStackIndex(index);
-        return (stack_checker<std::tuple_element<Is, C>::type>::check(pBase, record, absIndex+Is) && ...);
+        return (stack_checker<typename std::tuple_element<Is, C>::type>::check(
+            pBase, record, absIndex+Is) && ...);
     }
 
    static  bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
@@ -286,7 +287,8 @@ template<typename C>
 struct index_sequence_stack_pusher {
     template<std::size_t... Is>
     static int pushSequence(const ThreadViewBase* pBase, StackRecord& record, const C& cont, std::index_sequence<Is...>) {
-        return (stack_pusher<std::tuple_element<Is, C>::type>::push(pBase, record, std::get<Is>(cont)) + ...);
+        return (stack_pusher<typename std::tuple_element<Is, C>::type>::push(
+            pBase, record, std::get<Is>(cont)) + ...);
     }
 
     static int push(const ThreadViewBase* pBase, StackRecord& record, const C& cont) {

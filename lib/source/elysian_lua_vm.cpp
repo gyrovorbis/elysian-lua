@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <ElysianLua/elysian_lua_vm.hpp>
 #include <ElysianLua/elysian_lua_alloc_stats.hpp>
 #include <ElysianLua/elysian_lua_thread.hpp>

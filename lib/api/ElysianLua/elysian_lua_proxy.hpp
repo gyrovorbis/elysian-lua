@@ -46,7 +46,7 @@ inline int Proxy<CRTP>::push(void) const {
 template<typename CRTP>
 template<typename T>
 inline Proxy<CRTP>::operator T() const {
-    return static_cast<const CRTP*>(this)->get<T>();
+    return static_cast<const CRTP*>(this)->template get<T>();
 }
 /*
 template<typename CRTP>
