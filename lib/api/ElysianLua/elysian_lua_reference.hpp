@@ -7,7 +7,22 @@ extern "C" {
 #   include <lua/lauxlib.h>
 }
 
+
 namespace elysian::lua {
+
+
+#if 0
+
+template<typename CRTP>
+class Referenceable {
+    bool copy()
+
+
+};
+
+#endif
+
+
 
 #if 1
 
@@ -118,6 +133,7 @@ public:
 
 class StaticRefState {
 public:
+    static const ThreadViewBase* staticThread(void);
     const ThreadViewBase* getThread(void) const;
     bool setThread(const ThreadViewBase*) { return false; }
     void clear(void) {  }
@@ -138,6 +154,8 @@ private:
 
 #endif
 
+
+#if 0
 
 template<typename RefType>
 class StatefulReference: public RefType {
@@ -177,6 +195,8 @@ public:
 private:
     const ThreadViewBase* m_pThread = nullptr;
 };
+
+#endif
 
 
 
@@ -239,8 +259,11 @@ protected:
 class StatelessGlobalsTablePsuedoReference {
 public:
     bool copy(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference& other);
+    bool move(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference&& other);
     bool destroy(const ThreadViewBase* pThread);
     bool compare(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference& rhs) const;
+
+    bool release(const ThreadViewBase* pThread) { return true; }
 
     bool isValid(const ThreadViewBase* pThread) const;
     bool push(const ThreadViewBase* pThread) const; //getglobals
@@ -250,9 +273,10 @@ public:
     bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const;
 
     constexpr static bool onStack(void);
+    constexpr static bool stackStorage(void) { return false; }
 };
 
-
+#if 0
 template<typename RefType>
 inline StatefulReference<RefType>::StatefulReference(const ThreadViewBase* pThread): m_pThread(pThread) {}
 template<typename RefType>
@@ -315,6 +339,7 @@ inline bool StatefulReference<RefType>::destroy(const ThreadViewBase* pThread) {
 }
 template<typename RefType>
 inline constexpr bool StatefulReference<RefType>::onStack(void) { return RefType::onStack(); }
+#endif
 
 inline constexpr bool StatelessRegistryReference::onStack(void) { return false; }
 
@@ -406,17 +431,20 @@ inline bool StatelessGlobalsTablePsuedoReference::doneWithStackIndex(const Threa
 
 inline constexpr bool StatelessGlobalsTablePsuedoReference::onStack(void) { return false; }
 
+inline bool StatelessGlobalsTablePsuedoReference::move(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference&& other) { return true; }
+
+
 namespace stack_impl {
 
 struct reference_stack_checker {
-    static bool check(ThreadViewBase* pBase, StackRecord& record, int index) {
+    static bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
         return pBase->isTable(index) || pBase->isUserdata(index) || pBase->isFunction(index);
     }
 };
 
 template<typename T>
 struct reference_stack_getter {
-    static T get(ThreadViewBase* pBase, StackRecord& record, int index) {
+    static T get(const ThreadViewBase* pBase, StackRecord& record, int index) {
         T ref;
         ref.fromStackIndex(pBase, index);
         return ref;
@@ -425,7 +453,7 @@ struct reference_stack_getter {
 
 template<typename T>
 struct reference_stack_pusher {
-    static int push(ThreadViewBase* pBase, StackRecord& record, const T& ref) {
+    static int push(const ThreadViewBase* pBase, StackRecord& record, const T& ref) {
        ref.push(pBase);
        return 1;
     }
@@ -435,33 +463,33 @@ template<>
 constexpr const static int stack_pull_pop_count<StackTable> = 0;
 
 template<>
-struct stack_checker<StackReference>:
+struct stack_checker<StackRef>:
     public reference_stack_checker
 {};
 
 template<>
-struct stack_getter<StackReference>:
-    public reference_stack_getter<StackReference>
+struct stack_getter<StackRef>:
+    public reference_stack_getter<StackRef>
 {};
 
 template<>
-struct stack_pusher<StackReference>:
-    public reference_stack_pusher<StackReference>
+struct stack_pusher<StackRef>:
+    public reference_stack_pusher<StackRef>
 {};
 
 template<>
-struct stack_checker<RegistryReference>:
+struct stack_checker<RegistryRef>:
     public reference_stack_checker
 {};
 
 template<>
-struct stack_getter<RegistryReference>:
-    public reference_stack_getter<RegistryReference>
+struct stack_getter<RegistryRef>:
+    public reference_stack_getter<RegistryRef>
 {};
 
 template<>
-struct stack_pusher<RegistryReference>:
-    public reference_stack_pusher<RegistryReference>
+struct stack_pusher<RegistryRef>:
+    public reference_stack_pusher<RegistryRef>
 {};
 
 
@@ -472,17 +500,17 @@ struct stack_checker<StatelessRegistryReference>:
 
 template<>
 struct stack_getter<StatelessRegistryReference>:
-    public reference_stack_getter<RegistryReference>
+    public reference_stack_getter<StatelessRegistryReference>
 {};
 
 template<>
 struct stack_pusher<StatelessRegistryReference>:
-    public reference_stack_pusher<RegistryReference>
+    public reference_stack_pusher<StatelessRegistryReference>
 {};
 
 template<>
-struct stack_pusher<GlobalsTablePsuedoReference>:
-    public reference_stack_pusher<GlobalsTablePsuedoReference>
+struct stack_pusher<GlobalsTablePsuedoRef>:
+    public reference_stack_pusher<GlobalsTablePsuedoRef>
 {};
 
 }

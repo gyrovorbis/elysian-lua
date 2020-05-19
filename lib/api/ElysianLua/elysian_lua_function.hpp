@@ -4,6 +4,8 @@
 #include <functional>
 
 #include "elysian_lua_object.hpp"
+#include "elysian_lua_function_result.hpp"
+#include "elysian_lua_callable.hpp"
 
 namespace elysian::lua {
 
@@ -11,7 +13,8 @@ namespace elysian::lua {
 template<typename Ref>
 class FunctionBase:
         public Object<Ref>,
-        public Callable<FunctionBase<Ref>> {
+        public Callable<FunctionBase<Ref>,
+                        ProtectedFunctionCaller<StaticMessageHandlerState>> {
 public:
     FunctionBase(const ThreadViewBase* pThread=nullptr);
 
@@ -27,8 +30,7 @@ public:
     bool isValid(void) const;
 
     //=== Callable CRTP Overriddes ===
-    void pushFunc(void) const;
-    int validateFunc(void) const;
+    bool pushFunction(void) const;
     // =============================
 
     operator bool(void) const;
@@ -54,11 +56,6 @@ public:
 
     bool operator!=(std::nullptr_t) const;
 
-#if 0
-    template<typename... Args>
-    ProtectedFunctionResult operator()(Args&&... args) const;
-#endif
-
     template<typename R, typename... Args>
     operator std::function<R(Args...)>() const;
 
@@ -68,40 +65,6 @@ protected:
 
 };
 
-template<typename CRTP, typename Result>
-template<typename... Args>
-inline Result Callable<CRTP, Result>::operator()(Args&&... args) const {
-    const CRTP* self = static_cast<const CRTP*>(this);
-    const int oldTop = self->getThread()->getTop();
-    const int tempStackSlots = (getTemporaryStackSlots(std::forward<Args>(args)) + ...);
-    int argPushCount = 0;
-    int errorCode = self->validateFunc();
-
-    if(errorCode == LUA_OK) {
-        self->pushFunc();
-        (self->getThread()->push(std::forward<Args>(args)), ...);
-
-        argPushCount = self->getThread()->getTop() - oldTop - 1;
-        errorCode = self->getThread()->pCall(argPushCount, LUA_MULTRET);
-    }
-    return ProtectedFunctionResult(self->getThread(), errorCode, oldTop+1-tempStackSlots, self->getThread()->getTop()-oldTop, tempStackSlots);
-}
-
-template<typename CRTP, typename Result>
-template<typename T>
-inline int Callable<CRTP, Result>::getTemporaryStackSlots(T&& arg) {
-    if constexpr(std::is_same_v<T&&, FunctionResult&&>
-                 || std::is_same_v<T&&, ProtectedFunctionResult&&>)
-    {
-#if 0
-        return arg.getReturnCount() + arg.getTempStackSlots();
-#else
-        return 0;
-#endif
-    } else {
-        return 0;
-    }
-}
 
 
 template<typename Ref>
@@ -139,13 +102,8 @@ inline bool FunctionBase<Ref>::isValid(void) const {
 }
 
 template<typename Ref>
-inline void FunctionBase<Ref>::pushFunc(void) const {
-    m_ref.push();
-}
-
-template<typename Ref>
-inline int FunctionBase<Ref>::validateFunc(void) const {
-    return isValid()? LUA_OK : LUA_ERRERR;
+inline bool FunctionBase<Ref>::pushFunction(void) const {
+    return getThread()->push(m_ref);
 }
 
 template<typename Ref>

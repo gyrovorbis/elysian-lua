@@ -12,7 +12,6 @@ extern "C" {
 }
 
 #include <ElysianLua/elysian_lua_forward_declarations.hpp>
-//#include "elysian_lua_stack.hpp"
 
 #define ELYSIAN_LUA_PUSH_LITERAL(T, L) \
     lua_pushliteral(T, L)
@@ -113,6 +112,7 @@ public:
     lua_CFunction atPanic(lua_CFunction panicf) const;
     lua_Alloc getAllocFunc(void **pUd) const;
     void setAllocFunc(lua_Alloc f, void* pUd) const;
+    int getFunctionCallDepth(void) const;
 
     operator lua_State *(void)const;
 
@@ -967,7 +967,7 @@ inline int ThreadViewBase::getTableMulti(int index, const std::tuple<Keys...>& k
 template<typename C, std::size_t... Is>
 inline int ThreadViewBase::getTableMulti(int index, const C& container, std::index_sequence<Is...>) const {
     const int absIndex = toAbsStackIndex(index);
-    const int top = getTop();
+    StackGuard guard(this, 1);
 
     auto processElement = [&](const C& cont, auto Idx) {
         /* Compile-time shenanigans to avoid having to duplicate the source
@@ -978,9 +978,8 @@ inline int ThreadViewBase::getTableMulti(int index, const C& container, std::ind
 
     int retVal = (processElement(container, std::integral_constant<std::size_t, Is>()), ...);
 
-    insert(top + 1);
+    insert(guard.getBeginTop() + 1);
     pop(std::index_sequence<Is...>::size() - 1);
-    assert(getTop() == top + 1);
     return retVal;
 }
 
@@ -992,6 +991,8 @@ inline void ThreadViewBase::setTableMulti(int index, const std::tuple<Keys...>& 
 
 template<typename V, typename C, std::size_t... Is>
 inline void ThreadViewBase::setTableMulti(int index, const C& container, std::index_sequence<Is...>, V&& value) const {
+    StackGuard guard(this);
+    (void)guard;
     const int absIndex = toAbsStackIndex(index);
 
     auto processElement = [&](const C& cont, auto Idx) {
@@ -1186,12 +1187,16 @@ inline int ThreadViewBase::next(int index) const {
 
 template<typename F>
 inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
+    ELYSIAN_LUA_STACK_GUARD(this);
+    StackGuard<false> scopeGuard(this);
     const int absIndex = toAbsStackIndex(index);
     pushNil();
 
     if constexpr(std::is_same_v<bool, std::invoke_result_t<F>>) {
         while(next(absIndex) != 0) {
+            scopeGuard.begin();
             bool proceed = body();
+            scopeGuard.end();
             pop();
             if(!proceed) {
                 pop();
@@ -1202,7 +1207,9 @@ inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
 
     } else {
         while(next(absIndex) != 0) {
+            scopeGuard.begin();
             body();
+            scopeGuard.end();
             pop();
         }
     }
@@ -1258,6 +1265,12 @@ inline int ThreadViewBase::fileResult(int stat, const char* fName) const { retur
 inline void ThreadViewBase::bufferInit(luaL_Buffer *pBuffer) const { luaL_buffinit(m_pState, pBuffer); }
 inline char* ThreadViewBase::bufferInitSize(luaL_Buffer* pBuffer, size_t size) const { return luaL_buffinitsize(m_pState, pBuffer, size); }
 inline char* ThreadViewBase::bufferPrep(luaL_Buffer* pBuffer, size_t size) const { return luaL_prepbuffsize(pBuffer, size); }
+inline int ThreadViewBase::getFunctionCallDepth(void) const {
+    lua_Debug activationRecord;
+    int depth = 0;
+    while(getStack(depth, &activationRecord)) ++depth;
+    return depth;
+}
 
 }
 

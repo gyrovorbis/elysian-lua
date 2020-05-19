@@ -146,6 +146,29 @@ struct stack_pusher<void*> {
 };
 
 template<>
+struct stack_checker<const void*> {
+   static  bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
+        return pBase->isLightUserdata(index);
+    }
+};
+
+template<>
+struct stack_getter<const void*> {
+    static const void* get(const ThreadViewBase* pBase, StackRecord& record, int index) {
+        return pBase->toPointer(index);
+    }
+};
+
+template<>
+struct stack_pusher<const void*> {
+    static int push(const ThreadViewBase* pBase, StackRecord&, const void* value) {
+        pBase->push(value);
+        return 1;
+    }
+};
+
+
+template<>
 struct stack_checker<lua_CFunction> {
     static bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
         return pBase->isCFunction(index);

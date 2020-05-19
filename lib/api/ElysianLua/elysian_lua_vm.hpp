@@ -2,7 +2,7 @@
 #define ELYSIAN_LUA_VM_HPP
 
 #include <vector>
-#include "elysian_lua_function.hpp"
+#include "elysian_lua_forward_declarations.hpp"
 
 extern "C" {
     #include <lua/lua.h>
@@ -65,8 +65,7 @@ private:
 inline const AllocStats &LuaVM::getAllocStats(void) { return _allocStats; }
 inline Thread *LuaVM::getMainThread(void) { return _pMainThread; }
 
-//inline void LuaVM::setGlobalMessageHandler(Function handler) { m_globalMessageHandler = std::move(handler); }
-//inline const LuaVM::Function& getGlobalMessageHandler(void) { }
+
 
 
 } // namespace elysian

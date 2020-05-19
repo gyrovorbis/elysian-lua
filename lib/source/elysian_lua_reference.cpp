@@ -8,7 +8,8 @@ extern "C" {
 
 namespace elysian::lua {
 
-const ThreadViewBase* StaticRefState::getThread(void) const { return LuaVM::getMainThread(); }
+const ThreadViewBase* StaticRefState::getThread(void) const { return staticThread(); }
+const ThreadViewBase* StaticRefState::staticThread(void) { return LuaVM::getMainThread(); }
 
 bool StatelessGlobalsTablePsuedoReference::push(const ThreadViewBase* pThread) const {
     if(pThread) {
@@ -49,9 +50,14 @@ bool StatelessRegistryReference::push(const ThreadViewBase* pThread) const {
             pThread->pushNil();
             success = true;
         } else {
+            int oldTop = pThread->getTop();
             int retVal = pThread->getTableRaw(LUA_REGISTRYINDEX, m_ref);
             if(retVal != LUA_TNONE) {
+                int newTop = pThread->getTop();
+                assert(newTop == oldTop+1);
                 success = true;
+            } else {
+                assert(oldTop == pThread->getTop());
             }
         }
     }

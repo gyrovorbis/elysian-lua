@@ -5,21 +5,18 @@
 
 namespace elysian::lua {
 
-
-class FunctionResult:
-        public Proxy<FunctionResult>,
-        public Callable<FunctionResult, FunctionResult>
-{
+template<typename CRTP>
+class FunctionResultBase: public Proxy<CRTP> {
 public:
-    FunctionResult(const ThreadViewBase* pThreadViewBase,
+    FunctionResultBase(const ThreadViewBase* pThreadViewBase,
                    int startIndex, int count=-1, int tempStackSlots=0); //-1 => ranges from [startIndex : stackTop]
-    FunctionResult(FunctionResult&& rhs);
-    ~FunctionResult(void); //pop shit off of stack
+    FunctionResultBase(void) = delete;
+    FunctionResultBase(const FunctionResultBase<CRTP>& rhs) = delete;
+    FunctionResultBase(FunctionResultBase<CRTP>&& rhs);
+    ~FunctionResultBase(void); //pop shit off of stack
 
-    // ==== Callable CRTP Overrides ====
-    void pushFunc(void) const;
+    bool pushFunction(void) const;
     int validateFunc(void) const;
-    // ================================
 
     int getReturnCount(void) const;
     int getFirstIndex(void) const;
@@ -49,20 +46,42 @@ protected:
     int m_tempStackSlots = 0;
 };
 
+class FunctionResult:
+    public FunctionResultBase<FunctionResult>
+{
+public:
+    FunctionResult(const ThreadViewBase* pThreadViewBase,
+                   int startIndex, int count=-1, int tempStackSlots=0); //-1 => ranges from [startIndex : stackTop]
+    FunctionResult(FunctionResultBase&& rhs);
+
+
+};
+
+inline FunctionResult::FunctionResult(const ThreadViewBase* pThreadViewBase,
+               int startIndex, int count, int tempStackSlots):
+    FunctionResultBase<FunctionResult> (pThreadViewBase, startIndex, tempStackSlots)
+{}
+
+inline FunctionResult::FunctionResult(FunctionResultBase&& rhs):
+    FunctionResultBase<FunctionResult> (std::move(rhs))
+{}
+
 
 class ProtectedFunctionResult:
-        public FunctionResult,
-        public Callable<ProtectedFunctionResult>
+        public FunctionResultBase<ProtectedFunctionResult>
+        //public Callable<ProtectedFunctionResult>*/
 {
 public:
 
     ProtectedFunctionResult(const ThreadViewBase* pThreadViewBase, int errorCode, int startIndex, int count=-1, int tempStackSlots=0); //-1 => ranges from [startIndex : stackTop]
     ProtectedFunctionResult(ProtectedFunctionResult&& rhs);
+    ProtectedFunctionResult(const ProtectedFunctionResult& rhs) = delete;
+    ProtectedFunctionResult(void) = delete;
 
-    using Callable<ProtectedFunctionResult>::operator();
+    //using Callable<ProtectedFunctionResult>::operator();
 
     // ==== Callable CRTP Overrides ====
-    int validateFunc(void) const;
+    bool pushFunction(void) const;
     // ================================
 
     bool succeeded(void) const;
@@ -76,8 +95,8 @@ private:
 
 
 
-
-inline FunctionResult::FunctionResult(const ThreadViewBase* pThreadViewBase, int startIndex, int count, int tempStackSlots):
+template<typename CRTP>
+inline FunctionResultBase<CRTP>::FunctionResultBase(const ThreadViewBase* pThreadViewBase, int startIndex, int count, int tempStackSlots):
     m_pThread(pThreadViewBase),
     m_stackIndex(pThreadViewBase->toAbsStackIndex(startIndex)),
     m_retCount(count),
@@ -88,7 +107,8 @@ inline FunctionResult::FunctionResult(const ThreadViewBase* pThreadViewBase, int
     }
 }
 
-inline FunctionResult::FunctionResult(FunctionResult&& rhs):
+template<typename CRTP>
+inline FunctionResultBase<CRTP>::FunctionResultBase(FunctionResultBase&& rhs):
     m_pThread(rhs.m_pThread),
     m_stackIndex(rhs.m_stackIndex),
     m_retCount(rhs.m_retCount)
@@ -96,53 +116,63 @@ inline FunctionResult::FunctionResult(FunctionResult&& rhs):
     rhs.m_retCount = 0;
 }
 
-inline FunctionResult::~FunctionResult(void) {
+template<typename CRTP>
+inline FunctionResultBase<CRTP>::~FunctionResultBase(void) {
     if(m_retCount) {
-        assert(m_stackIndex + (m_retCount-1) <= getThread()->getTop());
+        int curTop = getThread()->getTop();
+        assert(getLastIndex() <= getThread()->getTop());
         getThread()->remove(getFirstIndex(), getReturnCount());
     }
 }
-inline const ThreadViewBase* FunctionResult::getThread(void) const { return m_pThread; }
-inline int FunctionResult::getReturnCount(void) const { return m_retCount; }
-inline int FunctionResult::getFirstIndex(void) const { return m_stackIndex; }
-inline int FunctionResult::getLastIndex(void) const { return m_stackIndex + (m_retCount-1); }
-inline int FunctionResult::getTempStackSlots(void) const { return m_tempStackSlots; }
+template<typename CRTP>
+inline const ThreadViewBase* FunctionResultBase<CRTP>::getThread(void) const { return m_pThread; }
+template<typename CRTP>
+inline int FunctionResultBase<CRTP>::getReturnCount(void) const { return m_retCount; }
+template<typename CRTP>
+inline int FunctionResultBase<CRTP>::getFirstIndex(void) const { return m_stackIndex; }
+template<typename CRTP>
+inline int FunctionResultBase<CRTP>::getLastIndex(void) const { return m_stackIndex + (m_retCount-1); }
+template<typename CRTP>
+inline int FunctionResultBase<CRTP>::getTempStackSlots(void) const { return m_tempStackSlots; }
 
-inline void FunctionResult::pushFunc(void) const {
+template<typename CRTP>
+inline bool FunctionResultBase<CRTP>::pushFunction(void) const {
     getThread()->pushValue(getFirstIndex());
-}
-inline int FunctionResult::validateFunc(void) const {
-    return (getReturnCount() == 1 && getThread()->getType(getFirstIndex()) == LUA_TFUNCTION)?
-                LUA_OK : LUA_ERRERR;
+    return 1;
 }
 
+template<typename CRTP>
 template<typename R>
-inline bool FunctionResult::operator==(const R& rhs) const {
+inline bool FunctionResultBase<CRTP>::operator==(const R& rhs) const {
     R tempVal = *this;
     return (tempVal == rhs);
 }
 
+template<typename CRTP>
 template<typename R>
-inline bool FunctionResult::operator!=(const R& rhs) const {
+inline bool FunctionResultBase<CRTP>::operator!=(const R& rhs) const {
     return !(*this == rhs);
 }
 
-inline int FunctionResult::push(const ThreadViewBase* pThread) const {
+template<typename CRTP>
+inline int FunctionResultBase<CRTP>::push(const ThreadViewBase* pThread) const {
     for(int i = 0; i < getReturnCount(); ++i) {
         pThread->pushValue(getFirstIndex() + i);
     }
     return getReturnCount();
 }
 
+template<typename CRTP>
 template<typename T>
-inline auto FunctionResult::get(int offset) const {
+inline auto FunctionResultBase<CRTP>::get(int offset) const {
     assert(getFirstIndex() + offset <= getThread()->getTop());
     return getThread()->toValue<T>(getFirstIndex() + offset);
 }
 
+template<typename CRTP>
 template<typename... Args>
 inline std::enable_if_t<(sizeof...(Args) > 1),
-std::tuple<Args...>> FunctionResult::get(int offset) const {
+std::tuple<Args...>> FunctionResultBase<CRTP>::get(int offset) const {
                      assert(false);
     assert(getFirstIndex() + offset + sizeof...(Args) <= getThread()->getTop());
 
@@ -154,25 +184,24 @@ std::tuple<Args...>> FunctionResult::get(int offset) const {
 }
 
 inline ProtectedFunctionResult::ProtectedFunctionResult(const ThreadViewBase* pThreadViewBase, int errorCode, int startIndex, int count, int tempStackSlots):
-    FunctionResult(pThreadViewBase, startIndex, count, tempStackSlots),
+    FunctionResultBase(pThreadViewBase, startIndex, count, tempStackSlots),
     m_errorCode(errorCode)
 {
     //assert(succeeded() || !count);
 }
 
 inline ProtectedFunctionResult::ProtectedFunctionResult(ProtectedFunctionResult&& rhs):
-    FunctionResult(std::move(rhs)),
+    FunctionResultBase(std::move(rhs)),
     m_errorCode(rhs.m_errorCode)
 {}
 
 inline bool ProtectedFunctionResult::succeeded(void) const { return m_errorCode == LUA_OK; }
 inline int ProtectedFunctionResult::getErrorCode(void) const { return m_errorCode; }
-inline int ProtectedFunctionResult::validateFunc(void) const {
-    int errorCode = FunctionResult::validateFunc();
-    if(errorCode == LUA_OK) {
-        if(!succeeded()) errorCode = LUA_ERRERR;
+inline bool ProtectedFunctionResult::pushFunction(void) const {
+    if(getErrorCode() == LUA_OK) {
+        return FunctionResultBase::pushFunction();
     }
-    return errorCode;
+    return false;
 }
 
 inline const char* ProtectedFunctionResult::getErrorMessage() const {
@@ -182,7 +211,6 @@ inline const char* ProtectedFunctionResult::getErrorMessage() const {
     }
     return msg;
 }
-
 
 namespace stack_impl {
 

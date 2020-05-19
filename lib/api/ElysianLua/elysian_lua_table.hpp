@@ -2,6 +2,7 @@
 #define ELYSIAN_LUA_TABLE_HPP
 
 #include "elysian_lua_object.hpp"
+#include "elysian_lua_callable.hpp"
 
 namespace elysian::lua {
 //Global operators for shit

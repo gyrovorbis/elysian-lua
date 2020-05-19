@@ -1,9 +1,8 @@
 #ifndef ELYSIAN_LUA_PROXY_HPP
 #define ELYSIAN_LUA_PROXY_HPP
 
-#include <tuple>
-#include <ElysianLua/elysian_lua_traits.hpp>
-#include "elysian_lua_function.hpp"
+#include "elysian_lua_forward_declarations.hpp"
+
 
 namespace elysian::lua {
 

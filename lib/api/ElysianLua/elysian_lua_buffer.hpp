@@ -12,25 +12,6 @@ extern "C" {
 
 namespace elysian::lua {
 
-#if 0
-Buffer blah;
-thread().bufferInit(&blah);
-
-
-
-blah.addFormatted("%1 %2 %3", va1, val2, val3);
-
-blah.in
-
-blah += Buffer::Fmt{"%1, %2, %3", val1, val2, val3}
-        Buffer::Sprintf()
-
-
-        thread().createBuffer()
-        #endif
-
-
-
     class ThreadView;
 
 class Buffer: public luaL_Buffer {

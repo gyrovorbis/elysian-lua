@@ -8,9 +8,25 @@ set(ELYSIAN_LUA_VERSION
 
 project(ElysianLua VERSION ${ELYSIAN_LUA_VERSION} DESCRIPTION "Elysian Shadows Lua Runtime Framework" LANGUAGES CXX)
 
+set(ELYSIAN_LUA_STACK_GUARD_OPTIONS
+    ELYSIAN_LUA_STACK_GUARD_LUA_ERROR
+    ELYSIAN_LUA_STACK_GUARD_LUA_WARNING
+    ELYSIAN_LUA_STACK_GUARD_ASSERT
+    ELYSIAN_LUA_STACK_GUARD_DISABLED)
+
+set(ELYSIAN_LUA_STACK_GUARD_OPTION ELYSIAN_LUA_STACK_GUARD_ASSERT CACHE STRING "Select an option")
+
+set_property(CACHE ELYSIAN_LUA_STACK_GUARD_OPTION
+    PROPERTY STRINGS ${ELYSIAN_LUA_STACK_GUARD_OPTIONS})
+
 option(ELYSIAN_LUA_DEBUG "Enable Debug" ON)
 option(ELYSIAN_LUA_USE_STD_STRING "Compile with std::string Support" OFF)
 option(ELYSIAN_LUA_PUSH_NULL_AS_NIL "Push any pointer type with a value of NULL as nil" ON)
+
+if (NOT ELYSIAN_LUA_STACK_GUARD_OPTION IN_LIST ELYSIAN_LUA_STACK_GUARD_OPTIONS)
+  message(FATAL_ERROR "Specify ELYSIAN_LUA_STACK_GUARD_OPTION. Must be one of ${ELYSIAN_LUA_STACK_GUARD_OPTIONS}")
+endif()
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -30,7 +46,8 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_thread_view.hpp
     api/ElysianLua/elysian_lua_thread.hpp
     api/ElysianLua/elysian_lua_object.hpp
-    api/ElysianLua/elysian_lua_Table.hpp
+    api/ElysianLua/elysian_lua_table.hpp
+    api/ElysianLua/elysian_lua_callable.hpp
     api/ElysianLua/elysian_lua_function.hpp
     api/ElysianLua/elysian_lua_reference.hpp
     api/ElysianLua/elysian_lua_proxy.hpp
@@ -42,7 +59,9 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_tuple.hpp
     api/ElysianLua/elysian_lua_thread_view_base.hpp
     api/ElysianLua/elysian_lua_buffer.hpp
-    api/ElysianLua/elysian_lua_metatable.hpp)
+    api/ElysianLua/elysian_lua_metatable.hpp
+    api/ElysianLua/elysian_lua_stack_frame.hpp
+    api/ElysianLua/elysian_lua_variant.hpp)
 
 set(ELYSIAN_LUA_CMAKE_PATH "lib/Lua5.4" CACHE STRING "CMake Project Path for Lua VM")
 #set_property(ELYSIAN_LUA_CMAKE_PATH PROPERTY VALUE)
@@ -60,6 +79,12 @@ target_include_directories(libElysianLua
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/api
 )
+
+target_compile_definitions(libElysianLua
+    PUBLIC
+        ELYSIAN_LUA_STACK_GUARD_OPTION=${ELYSIAN_LUA_STACK_GUARD_OPTION}
+)
+
 
 target_link_libraries(libElysianLua
     libLua)

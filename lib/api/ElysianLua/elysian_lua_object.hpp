@@ -1,29 +1,9 @@
 #ifndef ELYSIAN_LUA_OBJECT_HPP
 #define ELYSIAN_LUA_OBJECT_HPP
 
-//#include <ElysianLua/elysian_lua_thread_view_base.hpp>
-//#include <ElysianLua/elysian_lua_proxy.hpp>
 #include "elysian_lua_reference.hpp"
 
 namespace elysian::lua {
-
-class ProtectedFunctionResult;
-
-template<typename CRTP, typename Result=ProtectedFunctionResult>
-class Callable {
-public:
-
-    template<typename... Args>
-    Result operator()(Args&&... args) const;
-
-    /* This is so that we can chain functions by passing the results of one function call to another,
-     * but the problem is that a temporary function return object would be immediately deleted after
-     * returning from this function and would totally fuck the stack up. We have to take its deletion
-     * into account early. */
-    template<typename T>
-    static int getTemporaryStackSlots(T&& arg);
-};
-
 
 struct ObjectBase {};
 

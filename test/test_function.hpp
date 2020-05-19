@@ -2,8 +2,10 @@
 #define ELYSIAN_TEST_FUNCTION_HPP
 
 #include "test_base.hpp"
-#include <ElysianLua/elysian_lua_table_proxy.hpp>
 #include <ElysianLua/elysian_lua_function_result.hpp>
+#include <ElysianLua/elysian_lua_table_proxy.hpp>
+#include <ElysianLua/elysian_lua_stack_frame.hpp>
+#include <ElysianLua/elysian_lua_variant.hpp>
 
 namespace elysian::lua::test {
 
@@ -24,6 +26,10 @@ private slots:
     void functionReturnMove(void);
     void functionReturnPush(void);
     void functionChaining(void);
+
+    void protectedScope(void);
+    void contextualCall(void);
+    void stackGuard(void);
 
 private:
 
@@ -360,9 +366,66 @@ inline void FunctionTestSet::functionChaining(void) {
     QVERIFY(std::get<3>(retTuple).value() == true);
     QVERIFY(QString(std::get<4>(retTuple)) == "fuckinA");
     QVERIFY(std::get<5>(retTuple) == thread().getGlobalsTable());
+
 }
 
 
+inline void FunctionTestSet::protectedScope(void) {
+    ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+
+        ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+
+            ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+
+                ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+                    int illegalIndex = thread().getTop();
+                    thread().error("Fuck off!");
+                };
+
+            };
+
+        };
+
+    };
+}
+
+
+inline void FunctionTestSet::contextualCall(void) {
+    auto errorFunc = [](lua_State* pState) -> int {
+        char buffer[2048] = { 0 };
+        Thread* pThread = Thread::fromState(pState);
+
+            const char* str = nullptr;
+            for(int i = 1; i <= pThread->getTop(); ++i) {
+                str = pThread->toValue<const char*>(i);
+                if(str) {
+                    strcat(buffer, str);
+                    strcat(buffer, " ");
+                }
+            }
+            ELYSIAN_LUA_PROTECTED_BLOCK(pThread) {
+                pThread->error("Shit's reested: %s", buffer);
+            };
+        return 1;
+    };
+
+    ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+
+        Function func;
+        QVERIFY(thread().push(static_cast<lua_CFunction>(errorFunc)));
+        QVERIFY(thread().pull(func));
+
+        ELYSIAN_LUA_CONTEXTUAL_CALL(func, "ReesterBell", "mcReestly", "abadkf", 44, false, -3443.0f);
+
+    };
+}
+
+inline void FunctionTestSet::stackGuard(void) {
+    ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
+        ELYSIAN_LUA_STACK_GUARD(&thread());
+        thread().pushNil();
+    };
+}
 
 }
 

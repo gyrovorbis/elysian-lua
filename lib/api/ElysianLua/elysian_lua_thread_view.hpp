@@ -5,6 +5,8 @@
 #include "elysian_lua_stack.hpp"
 #include "elysian_lua_proxy.hpp"
 #include "elysian_lua_table.hpp"
+#include "elysian_lua_function_result.hpp"
+#include "elysian_lua_function.hpp"
 
 namespace elysian::lua {
 

@@ -1,6 +1,7 @@
 #include <ElysianLua/elysian_lua_vm.hpp>
 #include <ElysianLua/elysian_lua_alloc_stats.hpp>
 #include <ElysianLua/elysian_lua_thread.hpp>
+#include <ElysianLua/elysian_lua_function.hpp>
 
 extern "C" {
 #   include <lua/lualib.h>
@@ -11,6 +12,7 @@ namespace elysian::lua {
 
 AllocStats LuaVM::_allocStats;
 Thread *LuaVM::_pMainThread = nullptr;
+Function LuaVM::m_globalMessageHandler;
 
 static constexpr const char _rPrint[] =
         #if 0
@@ -68,6 +70,9 @@ bool LuaVM::_createMainThread(const char *pName) {
   return success;
 }
 
+void LuaVM::setGlobalMessageHandler(Function handler) { m_globalMessageHandler = std::move(handler); }
+const Function& LuaVM::getGlobalMessageHandler(void) { return m_globalMessageHandler; }
+
 bool LuaVM::initialize(void) {
   bool success = true;
   success &= _createMainThread("Main");
@@ -76,6 +81,7 @@ bool LuaVM::initialize(void) {
 
 bool LuaVM::uninitialize(void) {
   bool success = true;
+  m_globalMessageHandler.getRef().release();
   success &= _destroyMainThread();
   return success;
 }
