@@ -7,7 +7,7 @@ namespace elysian::lua {
 
 Thread::Thread(const char *pName) {
   assert(pName);
-  strncpy(_name, pName, ELYSIAN_LUA_THREAD_NAME_SIZE);
+  strncpy(m_name, pName, ELYSIAN_LUA_THREAD_NAME_SIZE);
 }
 
 
