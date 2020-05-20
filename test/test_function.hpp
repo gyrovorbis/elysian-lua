@@ -6,6 +6,7 @@
 #include <ElysianLua/elysian_lua_table_proxy.hpp>
 #include <ElysianLua/elysian_lua_stack_frame.hpp>
 #include <ElysianLua/elysian_lua_variant.hpp>
+#include <ElysianLua/elysian_lua_protected_block.hpp>
 
 namespace elysian::lua::test {
 

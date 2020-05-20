@@ -1,5 +1,5 @@
 #include <ElysianLua/elysian_lua_buffer.hpp>
-#include <ElysianLua/elysian_lua_thread_view.hpp>
+#include <ElysianLua/elysian_lua_thread.hpp>
 
 namespace elysian::lua {
 

@@ -2,6 +2,7 @@
 #define ELYSIAN_LUA_CALLABLE_HPP
 
 #include "elysian_lua_forward_declarations.hpp"
+#include "elysian_lua_stack_frame.hpp"
 #include "elysian_lua_function_result.hpp"
 #include "elysian_lua_thread_view_base.hpp"
 #include "elysian_lua_vm.hpp"
@@ -116,8 +117,7 @@ protected:
 };
 
 template<typename CRTP,
-         typename Caller =
-         ProtectedFunctionCaller<StaticMessageHandlerState>>
+         typename Caller>
 class Callable: public Caller {
 public:
 
@@ -125,7 +125,7 @@ public:
     auto operator()(Args&&... args) const;
 
     template<typename... Args>
-    auto contextualCall(CppExecutionContext& ctx, Args&&... args) const;
+    auto contextualCall(CppExecutionContext ctx, Args&&... args) const;
 };
 
 template<typename CRTP, typename Caller>
@@ -144,21 +144,19 @@ inline auto Callable<CRTP, Caller>::operator()(Args&&... args) const {
 
 template<typename CRTP, typename Caller>
 template<typename... Args>
-inline auto Callable<CRTP, Caller>::contextualCall(CppExecutionContext& ctx, Args&&... args) const {
+inline auto Callable<CRTP, Caller>::contextualCall(CppExecutionContext ctx, Args&&... args) const {
     const CRTP* pSelf = static_cast<const CRTP*>(this);
     const ThreadViewBase* pThread = pSelf->getThread();
-    const Thread* pThd = Thread::fromState(pThread->getState());
-    assert(pThread);
 
     const int oldTop = pThread->getTop();
     pSelf->pushFunction();
     (pThread->push(std::forward<Args>(args)), ...);
     const int argPushCount = pThread->getTop() - oldTop - 1;
 
-    pThd->setCurrentCppExecutionContext(ctx);
+    pThread->setCurrentCppExecutionContext(std::move(ctx));
 
     auto retVal = Caller::callFunction(pThread, argPushCount, LUA_MULTRET);
-    pThd->syncCppCallerContexts();
+    pThread->syncCppCallerContexts();
 
     return retVal;
 

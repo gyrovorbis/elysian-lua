@@ -112,6 +112,10 @@ class Callable;
 struct StackRecord;
 
 class CppExecutionContext;
+class StackMonitor;
+template<bool RAII=true>
+class StackGuard;
+class ProtectedBlock;
 
 
 namespace stack_impl {

@@ -1,8 +1,8 @@
 #ifndef ELYSIAN_LUA_THREAD_HPP
 #define ELYSIAN_LUA_THREAD_HPP
 
-#include "elysian_lua_thread_view.hpp"
 #include "elysian_lua_stack_frame.hpp"
+#include "elysian_lua_thread_view.hpp"
 
 #define ELYSIAN_LUA_THREAD_NAME_SIZE 64
 

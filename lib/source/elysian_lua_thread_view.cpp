@@ -1,4 +1,4 @@
-#include <ElysianLua/elysian_lua_thread_view.hpp>
+#include <ElysianLua/elysian_lua_thread.hpp>
 #include <ElysianLua/elysian_lua_object.hpp>
 #include <ElysianLua/elysian_lua_reference.hpp>
 #include <ElysianLua/elysian_lua_function_result.hpp>
@@ -14,6 +14,20 @@ const char* ThreadViewBase::pushStringFormatted(const char *pFmt, ...) const {
     va_end(args);
 
     return pRetStr;
+}
+
+void ThreadViewBase::setCurrentCppExecutionContext(const CppExecutionContext& ctx) const {
+    Thread* pThread = Thread::fromState(*this);
+    if(pThread) {
+        pThread->setCurrentCppExecutionContext(ctx);
+    }
+}
+
+void ThreadViewBase::syncCppCallerContexts(void) const {
+    Thread* pThread = Thread::fromState(*this);
+    if(pThread) {
+        pThread->syncCppCallerContexts();
+    }
 }
 
 void ThreadViewBase::rPrint(int index, unsigned maxDepth, const char* pLabel) {

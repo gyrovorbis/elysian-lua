@@ -461,7 +461,7 @@ struct reference_stack_pusher {
 };
 
 template<>
-int stack_pull_pop_count<StackTable> = 0;
+static constexpr int stack_pull_pop_count<StackTable> = 0;
 
 template<>
 struct stack_checker<StackRef>:

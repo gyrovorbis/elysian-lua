@@ -4,6 +4,7 @@
 #include <ElysianLua/elysian_lua_vm.hpp>
 #include <ElysianLua/elysian_lua_thread.hpp>
 #include <ElysianLua/elysian_lua_stack_frame.hpp>
+#include <ElysianLua/elysian_lua_stack_monitor.hpp>
 #include "elysian_qtest.hpp"
 
 namespace elysian::lua::test {

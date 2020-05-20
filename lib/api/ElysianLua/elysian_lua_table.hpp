@@ -3,6 +3,7 @@
 
 #include "elysian_lua_object.hpp"
 #include "elysian_lua_callable.hpp"
+#include "elysian_lua_operator_proxy.hpp"
 
 namespace elysian::lua {
 //Global operators for shit
@@ -40,8 +41,8 @@ auto operator>>(TableBase<RefType, Globals>& lhs, RType&& rhs) { return Operator
 
 template<typename RefType, bool GlobalsTable>
 class TableBase:
-        public Object<RefType>,
-        public Callable<TableBase<RefType, GlobalsTable>>
+        public Object<RefType>//,
+        //public Callable<TableBase<RefType, GlobalsTable>>
 {
 public:
 
@@ -54,8 +55,8 @@ public:
     template<typename RefType2, bool GlobalsTable2>
     TableBase(TableBase<RefType2, GlobalsTable2>&& other);
 
-    template<typename T, typename Key>
-    TableBase(const TableProxy<T, Key>& proxy);
+    //template<typename T, typename Key>
+    //TableBase(const TableProxy<T, Key>& proxy);
 
     //=====Callable CRTP Overrides=====
     int validateFunc(void) const;
@@ -113,14 +114,16 @@ public:
 
     bool operator!=(std::nullptr_t) const;
 
+    TableBase<RefType, GlobalsTable>& operator=(const TableBase<RefType, GlobalsTable>& rhs) const = delete;
+
     template<typename RefType2, bool GlobalsTable2>
     const TableBase<RefType, GlobalsTable>& operator=(const TableBase<RefType2, GlobalsTable2>& rhs);
 
     template<typename RefType2, bool GlobalsTable2>
     const TableBase<RefType, GlobalsTable>& operator=(TableBase<RefType2, GlobalsTable2>&& rhs);
 
-    template<typename T, typename Key>
-    const TableBase<RefType, GlobalsTable>& operator=(const TableProxy<T, Key>& proxy);
+    //template<typename T, typename Key>
+    //const TableBase<RefType, GlobalsTable>& operator=(const TableProxy<T, Key>& proxy);
 
     const TableBase<RefType, GlobalsTable>& operator=(std::nullptr_t);
 
@@ -147,14 +150,14 @@ inline TableBase<RefType, GlobalsTable>::TableBase(const TableBase<RefType2, Glo
 {
     *this = other;
 }
-
+/*
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename Key>
 inline TableBase<RefType, GlobalsTable>::TableBase(const TableProxy<T, Key>& proxy):
     Object<RefType>(proxy.getThread())
 {
     *this = proxy;
-}
+}*/
 
 template<typename RefType, bool GlobalsTable>
 template<typename RefType2, bool GlobalsTable2>
@@ -434,7 +437,7 @@ const TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operat
     this->getRef().release();
     return *this;
 }
-
+/*
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename Key>
 inline const TableBase<RefType, GlobalsTable>&
@@ -449,7 +452,7 @@ TableBase<RefType, GlobalsTable>::operator=(const TableProxy<T, Key>& proxy) {
         this->getRef().destroy(this->getThread());
     }
     return *this;
-}
+}*/
 
 template<typename RefType, bool GlobalsTable>
 template<typename... Args>

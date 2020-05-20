@@ -18,8 +18,8 @@ class FunctionBase:
 public:
     FunctionBase(const ThreadViewBase* pThread=nullptr);
 
-    template<typename T, typename Key>
-    FunctionBase(const TableProxy<T, Key>& proxy);
+    //template<typename T, typename Key>
+    //FunctionBase(const TableProxy<T, Key>& proxy);
 
     template<typename Ref2>
     FunctionBase(const FunctionBase<Ref2>& rhs);
@@ -35,8 +35,8 @@ public:
 
     operator bool(void) const;
 
-    template<typename T, typename Key>
-    const FunctionBase<Ref>& operator=(const TableProxy<T, Key>& proxy);
+    //template<typename T, typename Key>
+    //const FunctionBase<Ref>& operator=(const TableProxy<T, Key>& proxy);
 
     template<typename Ref2>
     const FunctionBase<Ref>& operator=(const FunctionBase<Ref2>& rhs);
@@ -71,14 +71,14 @@ template<typename Ref>
 inline FunctionBase<Ref>::FunctionBase(const ThreadViewBase* pThread):
     Object<Ref>(pThread)
 {}
-
+/*
 template<typename Ref>
 template<typename T, typename Key>
 inline FunctionBase<Ref>::FunctionBase(const TableProxy<T, Key>& proxy):
     Object<Ref>(proxy.getThread())
 {
     *this = proxy;
-}
+}*/
 
 template<typename Ref>
 template<typename Ref2>
@@ -110,7 +110,7 @@ template<typename Ref>
 inline FunctionBase<Ref>::operator bool(void) const {
     return isValid();
 }
-
+/*
 template<typename Ref>
 template<typename T, typename Key>
 inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(const TableProxy<T, Key>& proxy) {
@@ -118,7 +118,7 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(const TableProxy<T,
         proxy.getThread()->pull(*this);
     }
     return *this;
-}
+}*/
 
 template<typename Ref>
 template<typename Ref2>

@@ -2,6 +2,8 @@
 #define ELYSIAN_LUA_FUNCTION_RESULT_HPP
 
 #include "elysian_lua_proxy.hpp"
+#include "elysian_lua_stack.hpp"
+#include "elysian_lua_thread_view_base.hpp"
 
 namespace elysian::lua {
 

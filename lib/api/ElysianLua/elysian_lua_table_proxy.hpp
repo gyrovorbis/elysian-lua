@@ -35,7 +35,7 @@ public:
     using Parent = Proxy<TableProxy<T,Key>>;
 
     template<typename K>
-    using ChainedTuple = decltype(std::tuple_cat(m_keys, std::tuple<K>()));
+    using ChainedTuple = decltype(std::tuple_cat(std::tuple<Key>(), std::tuple<K>()));
 
     TableProxy(T table, Key key);
 

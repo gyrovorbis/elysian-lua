@@ -11,7 +11,7 @@ extern "C" {
 #   include <lua/lauxlib.h>
 }
 
-#include <ElysianLua/elysian_lua_forward_declarations.hpp>
+#include "elysian_lua_forward_declarations.hpp"
 
 #define ELYSIAN_LUA_PUSH_LITERAL(T, L) \
     lua_pushliteral(T, L)
@@ -24,13 +24,33 @@ template <typename... Args>
 struct LuaTableValues: public std::tuple<Args...> {
     LuaTableValues(Args&&... args):
         std::tuple<Args...>(args...){}
+
+    operator const std::tuple<Args...>& () const { return *this; }
 };
 
 template<typename K, typename V>
 struct LuaPair: public std::pair<K, V> {
     LuaPair(K key, V value):
         std::pair<K, V>(std::move(key), std::move(value)){}
+
+    operator const std::pair<K, V>& () const { return *this; }
 };
+
+template <std::size_t I, typename ...T>
+decltype(auto) get(LuaTableValues<T...>&& v)
+{
+    return std::get<I>(static_cast<std::tuple<T...>&&>(v));
+}
+template <std::size_t I, typename ...T>
+decltype(auto) get(LuaTableValues<T...>& v)
+{
+    return std::get<I>(static_cast<std::tuple<T...>&>(v));
+}
+template <std::size_t I, typename ...T>
+decltype(auto) get(LuaTableValues<T...> const& v)
+{
+    return std::get<I>(static_cast<std::tuple<T...> const&>(v));
+}
 
 template <typename, typename Enable = std::bool_constant<true>>
 constexpr bool is_kvpair = false;
@@ -390,6 +410,10 @@ public:
     void bufferInit(luaL_Buffer *pBuffer) const;
     char* bufferInitSize(luaL_Buffer* pBuffer, size_t size) const;
     char* bufferPrep(luaL_Buffer* pBuffer, size_t size=LUAL_BUFFERSIZE) const;
+
+    //Optional internal shit
+    void setCurrentCppExecutionContext(const CppExecutionContext& ctx) const;
+    void syncCppCallerContexts(void) const;
 
 
 protected:
@@ -844,12 +868,12 @@ inline void ThreadViewBase::setGlobalsTable(K&& key, V&& value) const {
 
 template<typename C, std::size_t... Is>
 inline void ThreadViewBase::appendSequence(int index, const C& container, std::index_sequence<Is...>) const {
-    (setTable(index, std::get<Is>(container).first, std::get<Is>(container).second), ...);
+    (setTable(index, get<Is>(container).first, get<Is>(container).second), ...);
 }
 
 template<typename C, std::size_t... Is>
 inline void ThreadViewBase::appendSequenceRaw(int index, const C& container, std::index_sequence<Is...>) const {
-    (setTableRaw(index, std::get<Is>(container).first, std::get<Is>(container).second), ...);
+    (setTableRaw(index, get<Is>(container).first, get<Is>(container).second), ...);
 }
 
 template<typename First, typename... Rest>
@@ -1187,16 +1211,16 @@ inline int ThreadViewBase::next(int index) const {
 
 template<typename F>
 inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
-    ELYSIAN_LUA_STACK_GUARD(this);
-    StackGuard<false> scopeGuard(this);
+    //ELYSIAN_LUA_STACK_GUARD(this);
+    //StackGuard<false> scopeGuard(this);
     const int absIndex = toAbsStackIndex(index);
     pushNil();
 
     if constexpr(std::is_same_v<bool, std::invoke_result_t<F>>) {
         while(next(absIndex) != 0) {
-            scopeGuard.begin();
+            //scopeGuard.begin();
             bool proceed = body();
-            scopeGuard.end();
+            //scopeGuard.end();
             pop();
             if(!proceed) {
                 pop();
@@ -1207,9 +1231,9 @@ inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
 
     } else {
         while(next(absIndex) != 0) {
-            scopeGuard.begin();
+           //scopeGuard.begin();
             body();
-            scopeGuard.end();
+           //scopeGuard.end();
             pop();
         }
     }
