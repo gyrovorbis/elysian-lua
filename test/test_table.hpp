@@ -447,7 +447,7 @@ inline void TableTestSetBase<TableType>::tableMetaTable(void) {
         }});
 
     QVERIFY(table.setMetaTable(meta));
-    Table meta2 = table.getMetaTable<Table>();
+    Table meta2 = table.template getMetaTable<Table>();
 
     QVERIFY(table["a"] == 45.3f);
     QVERIFY(table[3] == true);

@@ -168,7 +168,7 @@ template<typename CRTP>
 template<typename T>
 inline auto FunctionResultBase<CRTP>::get(int offset) const {
     assert(getFirstIndex() + offset <= getThread()->getTop());
-    return getThread()->toValue<T>(getFirstIndex() + offset);
+    return getThread()->template toValue<T>(getFirstIndex() + offset);
 }
 
 template<typename CRTP>
@@ -180,8 +180,11 @@ std::tuple<Args...>> FunctionResultBase<CRTP>::get(int offset) const {
 
     std::tuple<Args...> retValues;
     const auto indices = std::index_sequence_for<Args...>{};
+#if 0
+    ((std::get<indices>(retValues) =
+        getThread()->template toValue<decltype(std::get<indices>(retValues))>(getFirstIndex() + offset)),...);
+#endif
 
-    (std::get<indices>(retValues) = getThread()->toValue<decltype(std::get<indices>(retValues))>(getFirstIndex() + offset))...;
     return retValues;
 }
 

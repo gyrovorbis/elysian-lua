@@ -1,4 +1,5 @@
 #include <ElysianLua/elysian_lua_thread.hpp>
+#include <cstring>
 
 namespace elysian::lua {
 

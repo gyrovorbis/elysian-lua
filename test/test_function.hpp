@@ -155,7 +155,7 @@ inline void FunctionTestSet::functionProxyArgRetVals(const Function& function, A
 template<typename R, typename V, std::size_t... Is>
 inline void FunctionTestSet::functionProxyCheckRetVal(const R& results, const V& valueTuple, std::index_sequence<Is...>) const {
     auto confirmValue = [&](auto Idx) {
-        auto val1 = results.get<std::decay_t<decltype(std::get<Idx>(valueTuple))>>(Idx);
+        auto val1 = results.template get<std::decay_t<decltype(std::get<Idx>(valueTuple))>>(Idx);
         auto val2 = std::get<Idx>(valueTuple);
         if constexpr(std::is_same_v<const char*, std::decay_t<decltype(std::get<Idx>(valueTuple))>>) {
             QVERIFY(QString(val1) == val2);

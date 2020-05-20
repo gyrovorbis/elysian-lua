@@ -103,7 +103,7 @@ inline bool FunctionBase<Ref>::isValid(void) const {
 
 template<typename Ref>
 inline bool FunctionBase<Ref>::pushFunction(void) const {
-    return getThread()->push(m_ref);
+    return this->getThread()->push(this->m_ref);
 }
 
 template<typename Ref>

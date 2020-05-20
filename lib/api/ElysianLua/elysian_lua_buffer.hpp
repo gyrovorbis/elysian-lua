@@ -131,10 +131,10 @@ protected:
         return strncmp(getAddress(), pStr, getLength());
     }
     inline bool Buffer::operator!=(const char* pStr) { return !(*this == pStr); }
-
+#if 0
     template<typename... Args>
     inline Buffer& sprintf(const char* pFormatter, Args&&... args) {
-        auto startPos = pos();
+        auto startPos = this->pos();
 
         auto argTuple = std::tuple<Args...>(args...);
         const char* lastSource = pFormatter;
@@ -143,6 +143,7 @@ protected:
             addGSub(lastSource, )
         }
     }
+#endif
 }
 
 #endif // ELYSIAN_LUA_BUFFER_HPP

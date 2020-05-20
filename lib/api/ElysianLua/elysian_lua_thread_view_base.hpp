@@ -175,10 +175,6 @@ public:
 
     StackTable createTable(int arraySize=0, int hashSize=0) const;
 
-    template<typename T>
-    std::enable_if_t<stack_impl::stack_table_type<T>, StackTable>
-    createTable(const T& table) const;
-
     int ref(int index=LUA_REGISTRYINDEX) const;
     void unref(int ref) const;
     void unref(int table, int ref) const;
@@ -378,8 +374,8 @@ public:
     const char* setLocal(const lua_Debug* pAr, int n) const;
 
     // Lua Utility Library
-    void newLibrary(const luaL_Reg l[]) const;
-    void newLibraryTable(const luaL_Reg l[]) const;
+    //void newLibrary(const luaL_Reg l[]) const;
+    //void newLibraryTable(const luaL_Reg l[]) const;
     void newMetaTable(const char* pTypeName) const;
     void openStandardLibraries(void) const;
     void requireFunc(const char* pModuleName, lua_CFunction openFunc, int glb) const;
@@ -538,7 +534,7 @@ namespace internal {
         static void setRaw(const ThreadViewBase* pView, int index, const void* pKey, const V& value) {
             const int absIndex = pView->toAbsStackIndex(index);
             pView->push(value);
-            lua_setrawsetp(pView->getState(), absIndex, pKey);
+            lua_rawsetp(pView->getState(), absIndex, pKey);
         }
     };
 }
@@ -858,10 +854,8 @@ inline void ThreadViewBase::setGlobalsTable(K&& key) const {
         push(key);
         pushValue(-3);
         getTable(-3);
-        copy(oldTop);
         pop(getTop() - oldTop);
     }
-
 }
 
 template<typename K, typename V>
@@ -982,7 +976,7 @@ inline int ThreadViewBase::getUserValue(int index, int n) const {
 
 template<typename V>
 inline int ThreadViewBase::getUserValue(int index, int n, V& value) const {
-    int retVal = getUserValue(n);
+    int retVal = getUserValue(index, n);
     pull(value);
     return retVal;
 }
@@ -1159,8 +1153,8 @@ inline const char* ThreadViewBase::setUpValue(int funcIndex, int n) const { retu
 inline void* ThreadViewBase::upValueId(int funcIndex, int n) const { return lua_upvalueid(m_pState, funcIndex, n); }
 inline void ThreadViewBase::upValueJoin(int funcIndex1, int n1, int funcIndex2, int n2) const { return lua_upvaluejoin(m_pState, funcIndex1, n1, funcIndex2, n2); }
 inline const char* ThreadViewBase::setLocal(const lua_Debug* pAr, int n) const { return lua_setlocal(m_pState, pAr, n); }
-inline void ThreadViewBase::newLibrary(const luaL_Reg l[]) const { luaL_newlib(m_pState, l); }
-inline void ThreadViewBase::newLibraryTable(const luaL_Reg l[]) const { luaL_newlibtable(m_pState, l); }
+//inline void ThreadViewBase::newLibrary(const luaL_Reg l[]) const { luaL_newlib(m_pState, l); }
+//inline void ThreadViewBase::newLibraryTable(const luaL_Reg l[]) const { luaL_newlibtable(m_pState, l); }
 inline void ThreadViewBase::newMetaTable(const char* pTypeName) const { luaL_newmetatable(m_pState, pTypeName); }
 inline void ThreadViewBase::openStandardLibraries(void) const { luaL_openlibs(m_pState); }
 inline void ThreadViewBase::requireFunc(const char* pModuleName, lua_CFunction openFunc, int glb) const { luaL_requiref(m_pState, pModuleName, openFunc, glb); }
@@ -1201,13 +1195,6 @@ inline void ThreadViewBase::unref(int table, int ref) const {
 }
 inline void ThreadViewBase::unref(int ref) const {
     unref(LUA_REGISTRYINDEX, ref);
-}
-
-template<typename T>
-inline std::enable_if_t<stack_impl::stack_table_type<T>, StackTable>
-ThreadViewBase::createTable(const T& value) const {
-    push(value);
-    return toValue<StackTable>(-1);
 }
 
 inline int ThreadViewBase::next(int index) const {

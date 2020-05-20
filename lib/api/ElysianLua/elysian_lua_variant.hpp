@@ -2,6 +2,7 @@
 #define ELYSIAN_LUA_VARIANT_BASE_HPP
 
 #include "elysian_lua_reference.hpp"
+#include <cstring>
 
 #define ELYSIAN_LUA_PROXY_TYPE_METAFIELD "__typename"
 
@@ -1026,7 +1027,7 @@ Variant::_convertToNumber(const Variant &source,
                  source.getThread()->push(source.getThread()->toValue<NumberType>(-1));
                  source.getThread()->remove(-2);
                })
-               .getValue<NumberType>();
+               .template getValue<NumberType>();
   }
   return dest;
 }
@@ -1151,12 +1152,14 @@ Variant::fromArray(const std::initializer_list<Variant> &array) {
 
 template <typename C>
 inline Variant Variant::fromSequenceContainer(const C &cont) {
+#if 0
   Variant array;
   unsigned index = 1;
   for (auto it : cont) {
     array[index++] = it;
   }
   return array;
+#endif
 }
 
 inline Variant Variant::makeWeakRef(const Variant &src) {

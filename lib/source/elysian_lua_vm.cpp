@@ -3,6 +3,7 @@
 #include <ElysianLua/elysian_lua_vm.hpp>
 #include <ElysianLua/elysian_lua_alloc_stats.hpp>
 #include <ElysianLua/elysian_lua_thread.hpp>
+#include <ElysianLua/elysian_lua_reference.hpp>
 #include <ElysianLua/elysian_lua_function.hpp>
 
 extern "C" {

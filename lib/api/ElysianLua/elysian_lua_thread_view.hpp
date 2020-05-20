@@ -17,6 +17,12 @@ public:
     auto script(const char* pString, Table envTable=Table()) const -> ProtectedFunctionResult;
     auto scriptFile(const char* pFilePath, Table envTable=Table()) const -> ProtectedFunctionResult;
 
+    using ThreadViewBase::createTable;
+
+    template<typename T>
+    std::enable_if_t<stack_impl::stack_table_type<T>, StackTable>
+    createTable(const T& table) const;
+
 protected:
     ThreadView(void) = default;
 
@@ -24,6 +30,14 @@ protected:
 
 inline ThreadView::ThreadView(lua_State* state):
     ThreadViewBase(state) {}
+
+template<typename T>
+inline std::enable_if_t<stack_impl::stack_table_type<T>, StackTable>
+ThreadView::createTable(const T& value) const {
+    push(value);
+    return toValue<StackTable>(-1);
+}
+
 
 }
 

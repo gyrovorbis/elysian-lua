@@ -459,15 +459,14 @@ const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator+=(const TableBase<RefType2, GlobalsTable2>& rhs) const {
 
     if(isValid() && rhs.isValid()) {
-        const int dstTableIndex = this->getRef().makeStackIndex();
+        int dstTableIndex = this->getRef().makeStackIndex();
 
         auto copyTableEntries = [&](auto Fn) {
             rhs.iterate([&]() {
-                rhs.getThread()->pushValue(-2); // duplicate key
-                rhs.getThread()->pushValue(-2); // duplicate value
+                this->getThread()->pushValue(-2); // duplicate key
+                this->getThread()->pushValue(-2); // duplicate value
 
                 Fn();
-
                 this->getThread()->setTable(dstTableIndex);
 
             });
