@@ -42,7 +42,10 @@ protected:
   static bool _lightConvertToBool(const Variant &source);
   static Variant &_convertToBool(const Variant &source,
                                         Variant &dest);
-  static lua_Number _lightConvertToNumber(const Variant &source);
+
+  template<typename NumberType=lua_Number>
+  static NumberType _lightConvertToNumber(const Variant &source);
+  template<typename NumberType=lua_Number>
   static Variant &_convertToNumber(const Variant &source,
                                           Variant &dest);
 
@@ -57,17 +60,15 @@ public:
   Variant(std::nullptr_t null);
   Variant(const Variant &rhs);
   Variant(Variant &&rhs);
-  Variant(const int number);
-  Variant(const unsigned number);
-  Variant(const float number);
-  Variant(const double number);
+  Variant(const lua_Integer integer);
+  Variant(const lua_Number number);
   Variant(const bool val);
   Variant(const char *const string);
   Variant(void *const usd);
   Variant(const lua_CFunction funcPtr);
   template <typename Ret, typename... Args>
   Variant(const std::function<Ret(Args...)> &closure);
-  template <typename T> Variant(const T fun);
+  //template <typename T> Variant(const T fun);
 
   ~Variant(void);
 
@@ -78,23 +79,21 @@ public:
   Variant &operator=(Variant &&rhs);
   Variant &operator=(const std::nullptr_t);
   Variant &operator=(const bool val);
-  Variant &operator=(const int num);
-  Variant &operator=(const float num);
-  Variant &operator=(const double num);
+  Variant &operator=(const lua_Integer num);
+  Variant &operator=(const lua_Number num);
   Variant &operator=(const char *const string);
   Variant &operator=(void *const ptr);
   Variant &operator=(const lua_CFunction funcPtr);
   template <typename Ret, typename... Args>
   Variant &operator=(const std::function<Ret(Args...)> &closure);
-  template <typename T> Variant &operator=(const T func);
+  //template <typename T> Variant &operator=(const T func);
 
   template <typename T> bool operator==(const T *const ud) const;
   bool operator==(const Variant &rhs) const;
   bool operator==(const std::nullptr_t) const;
   bool operator==(const bool val) const;
-  bool operator==(const int num) const;
-  bool operator==(const float num) const;
-  bool operator==(const double num) const;
+  bool operator==(const lua_Integer num) const;
+  bool operator==(const lua_Number num) const;
   bool operator==(void *const ptr) const;
   bool operator==(const char *const str) const;
 
@@ -102,9 +101,8 @@ public:
   bool operator!=(const Variant &rhs) const;
   bool operator!=(const std::nullptr_t) const;
   bool operator!=(const bool val) const;
-  bool operator!=(const int num) const;
-  bool operator!=(const float num) const;
-  bool operator!=(const double num) const;
+  bool operator!=(const lua_Integer num) const;
+  bool operator!=(const lua_Number num) const;
   bool operator!=(void *const ptr) const;
   bool operator!=(const char *const str) const;
 
@@ -113,6 +111,7 @@ public:
   // returns new Variant with the desired type
   Variant asBool(void) const;
   Variant asNumber(void) const;
+  Variant asInteger(void) const;
   Variant asString(void) const;
   Variant asUserdata(void) const;
 
@@ -125,10 +124,8 @@ public:
 
   template <typename T> void setValue(T *const ud);
   void setValue(const std::nullptr_t null);
-  void setValue(const int number);
-  void setValue(const unsigned number);
-  void setValue(const float number);
-  void setValue(const double number);
+  void setValue(const lua_Integer number);
+  void setValue(const lua_Number number);
   void setValue(const char *const str);
   void setValue(const bool val);
   void setValue(void *const ptr);
@@ -177,8 +174,7 @@ public:
                                   const bool remove = true);
   static Variant fromRef(const int luaRef);
   static Variant fromWeakRef(const int ref);
-  static Variant
-  fromArray(const std::initializer_list<Variant> &array);
+  static Variant fromArray(const std::initializer_list<Variant> &array);
   template <typename C>
   static Variant fromSequenceContainer(const C &cont);
   static Variant makeWeakRef(const Variant &variant);
@@ -222,8 +218,6 @@ struct stack_pusher<std::initializer_list<VariantKVPair>> {
     }
 };
 }
-
-
 
 #if 0
 class LuaFieldRef : public LuaManager {
@@ -520,20 +514,16 @@ inline Variant::Variant(const char *const string) {
   setValue(string);
 }
 inline Variant::Variant(const bool val) { setValue(val); }
-inline Variant::Variant(const float number) { setValue(number); }
-inline Variant::Variant(const double number) { setValue(number); }
-inline Variant::Variant(const int num) { setValue(num); }
-inline Variant::Variant(const unsigned num) {
-  setValue((int)num);
-}
+inline Variant::Variant(const lua_Number number) { setValue(number); }
+inline Variant::Variant(const lua_Integer num) { setValue(num); }
 inline Variant::Variant(void *const ptr) { setValue(ptr); }
 
 inline Variant::Variant(const lua_CFunction funcPtr) {
   setValue(funcPtr);
 }
-template <typename T> inline Variant::Variant(const T fun) {
-  setValue(fun);
-}
+//template <typename T> inline Variant::Variant(const T fun) {
+//  setValue(fun);
+//}
 
 inline Variant::~Variant(void) { setNil(); }
 
@@ -557,16 +547,12 @@ inline Variant &Variant::operator=(const std::nullptr_t) {
   setValue(nullptr);
   return *this;
 }
-inline Variant &Variant::operator=(const int num) {
+inline Variant &Variant::operator=(const lua_Integer num) {
   setValue(num);
   return *this;
 }
-inline Variant &Variant::operator=(const float num) {
-  setValue((lua_Number)num);
-  return *this;
-}
-inline Variant &Variant::operator=(const double num) {
-  setValue((lua_Number)num);
+inline Variant &Variant::operator=(const lua_Number num) {
+  setValue(num);
   return *this;
 }
 inline Variant &Variant::operator=(const char *const string) {
@@ -587,10 +573,12 @@ Variant::operator=(const std::function<Ret(Args...)> &closure) {
   setValue(closure);
   return *this;
 }
+#if 0
 template <typename T> Variant &Variant::operator=(const T func) {
   setValue(make_function(func));
   return *this;
 }
+#endif
 
 inline bool Variant::operator==(const Variant &rhs) const {
   const auto type = getType();
@@ -637,14 +625,21 @@ inline bool Variant::operator==(const std::nullptr_t) const {
 inline bool Variant::operator==(const bool val) const {
   return getType() == LUA_TBOOLEAN && _value.boolean == val;
 }
-inline bool Variant::operator==(const int num) const {
-  return isInteger() && (int)_value.integer == (int)num;
+inline bool Variant::operator==(const lua_Integer num) const {
+    bool equal = false;
+    if(getType() == LUA_TNUMBER) {
+        if(isInteger()) equal = _value.integer == num;
+        else equal = _value.number == num;
+    }
+    return equal;
 }
-inline bool Variant::operator==(const float num) const {
-  return getType() == LUA_TNUMBER && _value.number == (lua_Number)num;
-}
-inline bool Variant::operator==(const double num) const {
-  return getType() == LUA_TNUMBER && _value.number == (lua_Number)num;
+inline bool Variant::operator==(const lua_Number num) const {
+    bool equal = false;
+    if(getType() == LUA_TNUMBER) {
+        if(isInteger()) equal = _value.integer == num;
+        else equal = _value.number == num;
+    }
+    return equal;
 }
 inline bool Variant::operator==(void *const ptr) const {
   return ptr ? isUserdataType() && _value.luserdata == ptr : isNil();
@@ -666,13 +661,10 @@ inline bool Variant::operator!=(const std::nullptr_t) const {
 inline bool Variant::operator!=(const bool val) const {
   return !(*this == val);
 }
-inline bool Variant::operator!=(const int num) const {
+inline bool Variant::operator!=(const lua_Integer num) const {
   return !(*this == num);
 }
-inline bool Variant::operator!=(const float num) const {
-  return !(*this == num);
-}
-inline bool Variant::operator!=(const double num) const {
+inline bool Variant::operator!=(const lua_Number num) const {
   return !(*this == num);
 }
 inline bool Variant::operator!=(void *const ptr) const {
@@ -764,24 +756,14 @@ Variant::setValue(const std::initializer_list<VariantKVPair> &pairs) {
 
 inline void Variant::setValue(std::nullptr_t /*null*/) { setNil(); }
 
-inline void Variant::setValue(const int number) {
+inline void Variant::setValue(const lua_Integer number) {
   _setType(LUA_TNUMBER, true);
   _value.integer = (lua_Integer)number;
 }
 
-inline void Variant::setValue(const unsigned number) {
-  _setType(LUA_TNUMBER, true);
-  _value.integer = (lua_Integer)number;
-}
-
-inline void Variant::setValue(const float number) {
+inline void Variant::setValue(const lua_Number number) {
   _setType(LUA_TNUMBER);
-  _value.number = (lua_Number)number;
-}
-
-inline void Variant::setValue(const double number) {
-  _setType(LUA_TNUMBER);
-  _value.number = (lua_Number)number;
+  _value.number = number;
 }
 
 inline void Variant::setValue(const char *const str) {
@@ -834,13 +816,8 @@ template <> inline bool Variant::getValue<bool>(void) const {
   return _value.boolean;
 }
 
-template <> inline float Variant::getValue<float>(void) const {
-  return isInteger() ? static_cast<float>(_value.integer) : _value.number;
-}
-
-template <> inline double Variant::getValue<double>(void) const {
-  return isInteger() ? static_cast<double>(_value.integer)
-                     : static_cast<double>(_value.number);
+template <> inline lua_Number Variant::getValue<lua_Number>(void) const {
+  return isInteger() ? static_cast<lua_Number>(_value.integer) : _value.number;
 }
 
 template <>
@@ -848,17 +825,81 @@ inline const char *Variant::getValue<const char *>(void) const {
   return _value.string;
 }
 
-template <> inline int Variant::getValue<int>(void) const {
-  return isInteger() ? _value.integer : static_cast<int>(_value.number);
-}
-
-template <> inline unsigned Variant::getValue<unsigned>(void) const {
-  return isInteger() ? static_cast<unsigned>(_value.integer)
-                     : static_cast<unsigned>(_value.number);
+template <> inline lua_Integer Variant::getValue<lua_Integer>(void) const {
+  return isInteger() ? _value.integer : static_cast<lua_Integer>(_value.number);
 }
 
 template <> inline void *Variant::getValue<void *>(void) const {
   return _value.luserdata;
+}
+
+inline bool Variant::push(void) const {
+    switch (getType()) {
+    case LUA_TNIL:
+      getThread()->pushNil();
+      break;
+    case LUA_TBOOLEAN:
+      getThread()->push(getValue<bool>());
+      break;
+    case LUA_TNUMBER:
+      if (isInteger())
+        getThread()->push(getValue<lua_Integer>());
+      else
+        getThread()->push(getValue<lua_Number>());
+      break;
+    case LUA_TSTRING:
+      getThread()->push(getValue<const char *>());
+      break;
+    case LUA_TLIGHTUSERDATA:
+      getThread()->push(getValue<void *>());
+      break;
+    case LUA_TTABLE:
+    case LUA_TUSERDATA:
+    case LUA_TFUNCTION:
+    case LUA_TTHREAD:
+      getThread()->getTableRaw(LUA_REGISTRYINDEX, getRef());
+      break;
+    }
+    return true;
+}
+
+inline bool Variant::pull(void) {
+  if (!getThread()->getTop()) {
+    setNil();
+    return false;
+  }
+
+  const int type = getThread()->getType(-1);
+
+  switch (type) {
+  case LUA_TNIL:
+    setNil();
+    break;
+  case LUA_TBOOLEAN:
+    setValue(getThread()->toValue<bool>(-1));
+    break;
+  case LUA_TNUMBER:
+    if (getThread()->isInteger(-1))
+        setValue(getThread()->toValue<lua_Integer>(-1));
+    else
+        setValue(getThread()->toValue<lua_Number>(-1));
+    break;
+  case LUA_TSTRING:
+    setValue(getThread()->toValue<const char*>(-1));
+    break;
+  case LUA_TLIGHTUSERDATA:
+    setValue(getThread()->toValue<void*>(-1));
+    break;
+  case LUA_TTABLE:
+  case LUA_TUSERDATA:
+  case LUA_TFUNCTION:
+  case LUA_TTHREAD:
+    _setRefDirect(getThread()->ref(LUA_REGISTRYINDEX));
+    return true;
+  }
+
+  getThread()->pop();
+  return true;
 }
 
 inline int Variant::getType(void) const {
@@ -868,7 +909,7 @@ inline int Variant::getType(void) const {
 inline const char *Variant::getTypeString(void) const {
   const int luaType = getType();
   if (luaType == LUA_TNUMBER) {
-    return isInteger() ? "integer" : "float";
+    return isInteger() ? "integer" : "number";
   } else if (luaType != LUA_TUSERDATA && luaType != LUA_TLIGHTUSERDATA) {
     return getThread()->getTypeName(luaType);
   } else {
@@ -947,7 +988,8 @@ Variant::_convertToBool(const Variant &source,
   return dest;
 }
 
-inline lua_Number
+template<typename NumberType>
+inline NumberType
 Variant::_lightConvertToNumber(const Variant &source) {
   switch (source.getType()) {
   case LUA_TNUMBER:
@@ -966,6 +1008,7 @@ Variant::_lightConvertToNumber(const Variant &source) {
   }
 }
 
+template<typename NumberType>
 inline Variant &
 Variant::_convertToNumber(const Variant &source,
                                  Variant &dest) {
@@ -974,16 +1017,16 @@ Variant::_convertToNumber(const Variant &source,
   case LUA_TBOOLEAN:
   case LUA_TNIL:
   case LUA_TLIGHTUSERDATA:
-    dest = _lightConvertToNumber(source);
+    dest = _lightConvertToNumber<NumberType>(source);
     break;
   case LUA_TSTRING:
   default:
     dest = source
                ._convertType([&](void) {
-                 source.getThread()->push(source.getThread()->toNumber(-1));
+                 source.getThread()->push(source.getThread()->toValue<NumberType>(-1));
                  source.getThread()->remove(-2);
                })
-               ._value.number;
+               .getValue<NumberType>();
   }
   return dest;
 }
@@ -999,9 +1042,14 @@ inline Variant Variant::asNumber(void) const {
   return (getType() == LUA_TNUMBER) ? *this : _convertToNumber(*this, variant);
 }
 
+inline Variant Variant::asInteger(void) const {
+  Variant variant;
+  return (isInteger()) ? *this : _convertToNumber<lua_Integer>(*this, variant);
+}
+
 inline Variant Variant::asString(void) const {
   return (getType() == LUA_TSTRING) ? *this : _convertType([&](void) {
-    getThread()->toString(-1, nullptr);
+    getThread()->convertToString(-1, nullptr);
     getThread()->remove(-2);
   });
 }
@@ -1273,12 +1321,12 @@ const_noconst_iterator<is_const_iterator>::operator++(void) {
 template <typename Ret, typename... Args>
 inline void
 Variant::setValue(const std::function<Ret(Args...)> &closure) {
-  getThread()->push(closure);
+  //getThread()->push(closure);
   pull();
 }
 
 template <typename T> inline void Variant::setValue(const T lambda) {
-  setValue(make_function(lambda));
+  //setValue(make_function(lambda));
   // LuaManager::push(lambda);
   // pull();
 }

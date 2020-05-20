@@ -47,7 +47,19 @@ public:
         StateType(static_cast<StateType&&>(std::move(rhs)))
     {
         RefType::move(this->getThread(), static_cast<RefType&&>(std::move(rhs)));
+        rhs.setThread(nullptr);
     }
+#if 0
+    bool copy(const ThreadViewBase* pThread, const RefType& rhs) {
+        release();
+        this->setThread(rhs.getThread());
+
+    }
+
+    bool move(const ThreadViewBase* pThread, RefType&& rhs) {
+        return copy(pThread, std::move(rhs));
+    }
+#endif
 
     StatefulRefBase<RefType, StateType>&
     operator=(const StatefulRefBase<RefType, StateType>& rhs) {
@@ -237,7 +249,6 @@ public:
     int makeStackIndex(const ThreadViewBase* pThread) const;
     bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const;
 
-    bool copy(const ThreadViewBase* pThread, StatelessStackReference&& rhs);
     bool copy(const ThreadViewBase* pThread, const StatelessStackReference& rhs);
     bool move(const ThreadViewBase* pThread, StatelessStackReference&& rhs) {
         return copy(pThread, std::move(rhs));
@@ -379,11 +390,6 @@ inline bool StatelessStackReference::isValid(const ThreadViewBase* pThread) cons
 inline bool StatelessStackReference::destroy(const ThreadViewBase* pThread) {
     (void)pThread;
     m_index = 0;
-    return true;
-}
-
-inline bool StatelessStackReference::copy(const ThreadViewBase* pThread, StatelessStackReference&& rhs) {
-    m_index = rhs.m_index;
     return true;
 }
 

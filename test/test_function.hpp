@@ -422,10 +422,12 @@ inline void FunctionTestSet::contextualCall(void) {
 }
 
 inline void FunctionTestSet::stackGuard(void) {
+#if 0
     ELYSIAN_LUA_PROTECTED_BLOCK(&thread()) {
         ELYSIAN_LUA_STACK_GUARD(&thread());
         thread().pushNil();
     };
+#endif
 }
 
 }

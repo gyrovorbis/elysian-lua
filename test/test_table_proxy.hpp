@@ -143,12 +143,14 @@ inline void TableProxyTestSet::tableProxyAssignment(void) {
     table p = v; \
     genericTableProxyConversion(table p, v)
 
+
     TEST_PROXY(["TableProxyTestSet"][1], 12);
     TEST_PROXY(["TableProxyTestSet"]["2"], false);
     TEST_PROXY(["TableProxyTestSet"][3][34.0f], nullptr);
     TEST_PROXY(["TableProxyTestSet"][3]["44"], static_cast<const char*>("lolz"));
     TEST_PROXY(["TableProxyTestSet"][3]["5"][true][reinterpret_cast<void*>(0xdeadbeef)], table2);
     table3 = table["TableProxyTestSet"][3]["5"][true][reinterpret_cast<void*>(0xdeadbeef)];
+
     QVERIFY(table3 == table2);
     QVERIFY(table3 == table["TableProxyTestSet"][3]["5"][true][reinterpret_cast<void*>(0xdeadbeef)]);
 

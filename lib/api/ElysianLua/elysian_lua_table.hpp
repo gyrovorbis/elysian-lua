@@ -55,9 +55,6 @@ public:
     template<typename RefType2, bool GlobalsTable2>
     TableBase(TableBase<RefType2, GlobalsTable2>&& other);
 
-    //template<typename T, typename Key>
-    //TableBase(const TableProxy<T, Key>& proxy);
-
     //=====Callable CRTP Overrides=====
     int validateFunc(void) const;
     void pushFunc(void) const;
@@ -122,8 +119,8 @@ public:
     template<typename RefType2, bool GlobalsTable2>
     const TableBase<RefType, GlobalsTable>& operator=(TableBase<RefType2, GlobalsTable2>&& rhs);
 
-    //template<typename T, typename Key>
-    //const TableBase<RefType, GlobalsTable>& operator=(const TableProxy<T, Key>& proxy);
+    template<typename T, typename Key>
+    const TableBase<RefType, GlobalsTable>& operator=(const TableProxy<T, Key>& proxy);
 
     const TableBase<RefType, GlobalsTable>& operator=(std::nullptr_t);
 
@@ -150,14 +147,6 @@ inline TableBase<RefType, GlobalsTable>::TableBase(const TableBase<RefType2, Glo
 {
     *this = other;
 }
-/*
-template<typename RefType, bool GlobalsTable>
-template<typename T, typename Key>
-inline TableBase<RefType, GlobalsTable>::TableBase(const TableProxy<T, Key>& proxy):
-    Object<RefType>(proxy.getThread())
-{
-    *this = proxy;
-}*/
 
 template<typename RefType, bool GlobalsTable>
 template<typename RefType2, bool GlobalsTable2>
@@ -396,7 +385,7 @@ TableBase<RefType, GlobalsTable>::operator=(const TableBase<RefType2, GlobalsTab
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
-            this->getRef().copy(rhs.getThread(), rhs.getRef());
+            this->getRef() = rhs.getRef();
         } else if constexpr(RefType::onStack() && RefType2::onStack()) {
             this->getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
         } else { // Manually copy via stack
@@ -419,7 +408,7 @@ TableBase<RefType, GlobalsTable>::operator=(TableBase<RefType2, GlobalsTable2>&&
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
-            this->getRef().copy(rhs.getThread(), std::move(rhs.getRef()));
+            this->getRef() = std::move(rhs.getRef());
         } else if constexpr(RefType::onStack() && RefType2::onStack()) {
             this->getRef().fromStackIndex(rhs.getThread(), rhs.getRef().getIndex());
         } else { // Manually copy via stack
@@ -437,7 +426,7 @@ const TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operat
     this->getRef().release();
     return *this;
 }
-/*
+
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename Key>
 inline const TableBase<RefType, GlobalsTable>&
@@ -452,7 +441,7 @@ TableBase<RefType, GlobalsTable>::operator=(const TableProxy<T, Key>& proxy) {
         this->getRef().destroy(this->getThread());
     }
     return *this;
-}*/
+}
 
 template<typename RefType, bool GlobalsTable>
 template<typename... Args>

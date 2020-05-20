@@ -7,6 +7,7 @@
 #include "test_buffer.hpp"
 #include "test_operators.hpp"
 #include "test_thread_view.hpp"
+#include "test_variant.hpp"
 
 using namespace elysian;
 using namespace elysian::lua::test;
@@ -25,6 +26,7 @@ int main(int argc, char* argv[]) {
     testSuite.enqueueTestSet(new FunctionTestSet);
     testSuite.enqueueTestSet(new BufferTestSet);
     testSuite.enqueueTestSet(new ThreadViewTestSet);
+    testSuite.enqueueTestSet(new VariantTestSet);
 
     return testSuite.exec(argc, argv);
 }

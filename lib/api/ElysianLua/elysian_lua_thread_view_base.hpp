@@ -201,6 +201,7 @@ public:
 
     lua_Integer toInteger(int index, bool* pIsNum=nullptr) const;
     const char* toString(int index, size_t* pLen=nullptr) const;
+    const char* convertToString(int index, size_t* pLength=nullptr) const;
     lua_Number toNumber(int index, bool* pIsNum=nullptr) const;
     bool toBoolean(int index) const;
     lua_CFunction toCFunction(int index) const;
@@ -758,6 +759,10 @@ inline lua_Integer ThreadViewBase::toInteger(int index, bool* pIsNum) const {
 
 inline const char* ThreadViewBase::toString(int index, size_t* pLen) const {
     return lua_tolstring(m_pState, index, pLen);
+}
+
+inline const char* ThreadViewBase::convertToString(int index, size_t* pLength) const {
+    return luaL_tolstring(m_pState, index, pLength);
 }
 
 inline lua_Number ThreadViewBase::toNumber(int index, bool* pIsNum) const {

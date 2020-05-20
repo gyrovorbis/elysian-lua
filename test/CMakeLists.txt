@@ -22,6 +22,7 @@ add_executable(ElysianLuaTests
     test_buffer.hpp
     test_operators.hpp
     test_thread_view.hpp
+    test_variant.hpp
     main.cpp)
 
 target_link_libraries(ElysianLuaTests
