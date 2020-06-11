@@ -33,7 +33,6 @@ set(LUA_SOURCES
     source/ltable.c 
     source/ltablib.c 
     source/ltm.c 
-    source/lua.c 
     source/lundump.c 
     source/lutf8lib.c 
     source/lvm.c 
