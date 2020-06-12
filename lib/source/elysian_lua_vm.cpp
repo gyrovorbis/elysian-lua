@@ -58,10 +58,11 @@ static constexpr const char _rPrint[] =
         #endif
 
 
-bool LuaVM::_createMainThread(const char *pName) {
+bool LuaVM::_createMainThread(lua_State *pState, const char *pName) {
     bool success = true;
   _pMainThread = new Thread(pName);
-  lua_State *pState = lua_newstate(&LuaVM::_luaAlloc, nullptr);
+  if(!pState)
+    pState = lua_newstate(&LuaVM::_luaAlloc, nullptr);
   luaL_openlibs(pState);
   assert(pState);
   _pMainThread->_setState(pState);
@@ -76,9 +77,9 @@ bool LuaVM::_createMainThread(const char *pName) {
 void LuaVM::setGlobalMessageHandler(Function handler) { m_globalMessageHandler = std::move(handler); }
 const Function& LuaVM::getGlobalMessageHandler(void) { return m_globalMessageHandler; }
 
-bool LuaVM::initialize(void) {
+bool LuaVM::initialize(lua_State *pState) {
   bool success = true;
-  success &= _createMainThread("Main");
+  success &= _createMainThread(pState, "Main");
   return success;
 }
 
