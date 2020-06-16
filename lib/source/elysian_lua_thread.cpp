@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <ElysianLua/elysian_lua_thread.hpp>
 #include <cstring>
 

@@ -1165,14 +1165,14 @@ Variant::fromArray(const std::initializer_list<Variant> &array) {
 
 template <typename C>
 inline Variant Variant::fromSequenceContainer(const C &cont) {
-#if 0
   Variant array;
+#if 0
   unsigned index = 1;
   for (auto it : cont) {
     array[index++] = it;
   }
-  return array;
 #endif
+  return array;
 }
 
 inline Variant Variant::makeWeakRef(const Variant &src) {

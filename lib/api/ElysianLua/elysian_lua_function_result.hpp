@@ -168,7 +168,7 @@ template<typename CRTP>
 template<typename T>
 inline auto FunctionResultBase<CRTP>::get(int offset) const {
     assert(getFirstIndex() + offset <= getThread()->getTop());
-    return getThread()->template toValue<T>(getFirstIndex() + offset);
+    return this->getThread()->template toValue<T>(getFirstIndex() + offset);
 }
 
 template<typename CRTP>

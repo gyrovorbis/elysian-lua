@@ -10,6 +10,8 @@ extern "C" {
 #   include <lua/lauxlib.h>
 }
 
+#include "elysian_lua_thread_view.hpp"
+
 namespace elysian::lua {
 
     class ThreadView;

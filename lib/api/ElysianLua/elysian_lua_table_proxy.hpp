@@ -161,7 +161,7 @@ inline int TableProxy<T, Key>::push(const ThreadViewBase* pThread) const {
 template<typename T, typename Key>
 template<typename V>
 inline V TableProxy<T, Key>::get(void) const {
-    V value;
+    V value = {};
     push(getThread());
     getThread()->pull(value);
     return value;
