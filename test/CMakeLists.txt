@@ -31,3 +31,4 @@ target_link_libraries(ElysianLuaTests
     Qt5::Core
     Qt5::Test)
 
+add_test(NAME ElysianLuaTests COMMAND ElysianLuaTests)

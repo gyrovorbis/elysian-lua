@@ -8,5 +8,7 @@ set(ELYSIAN_LUA_VERSION
 
 project(ElysianLua VERSION ${ELYSIAN_LUA_VERSION} DESCRIPTION "Elysian Shadows Lua Runtime Framework" LANGUAGES CXX)
 
+enable_testing()
+
 add_subdirectory(lib)
 add_subdirectory(test)
