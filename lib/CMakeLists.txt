@@ -47,6 +47,7 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_thread_view.hpp
     api/ElysianLua/elysian_lua_thread.hpp
     api/ElysianLua/elysian_lua_object.hpp
+    api/ElysianLua/elysian_lua_table_accessible.hpp
     api/ElysianLua/elysian_lua_table.hpp
     api/ElysianLua/elysian_lua_callable.hpp
     api/ElysianLua/elysian_lua_function.hpp

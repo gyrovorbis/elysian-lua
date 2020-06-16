@@ -2,6 +2,8 @@
 #define ELYSIAN_LUA_VARIANT_BASE_HPP
 
 #include "elysian_lua_reference.hpp"
+#include "elysian_lua_table_accessible.hpp"
+#include "elysian_lua_callable.hpp"
 #include <cstring>
 
 #define ELYSIAN_LUA_PROXY_TYPE_METAFIELD "__typename"
@@ -19,11 +21,18 @@ class Variant;
 
 using VariantKVPair = std::pair<Variant, Variant>;
 
-class Variant : public StaticRefState {
-  using iterator = const_noconst_iterator<false>;
-  using const_iterator = const_noconst_iterator<true>;
+//ifdef for storing strings Lua-side to compare performance?
 
-  friend const_iterator;
+class Variant :
+        public StaticRefState,
+        public TableAccessible<Variant>,
+        public Callable<Variant>
+{
+    using iterator = const_noconst_iterator<false>;
+    using const_iterator = const_noconst_iterator<true>;
+
+    friend class TableAccessible<Variant>;
+    friend const_iterator;
 
 protected:
   uint32_t _type = LUA_TNIL; // only least significant 4 bits represent
@@ -54,10 +63,15 @@ protected:
   void _setType(const int luaType, const bool isInteger = false);
   void _setRefDirect(const int luaRef);
 
+  // Table Accessible implementation:
+  int makeStackIndex(void) const;
+  void doneWithStackIndex(int index) const;
+  bool isValid(void) const;
+
 public:
   Variant(void) = default;
   Variant(const std::initializer_list<VariantKVPair> &pairs);
-  template <typename T> Variant(T *const userdata);
+  //template <typename T> Variant(T *const userdata);
   Variant(std::nullptr_t null);
   Variant(const Variant &rhs);
   Variant(Variant &&rhs);
@@ -67,8 +81,8 @@ public:
   Variant(const char *const string);
   Variant(void *const usd);
   Variant(const lua_CFunction funcPtr);
-  template <typename Ret, typename... Args>
-  Variant(const std::function<Ret(Args...)> &closure);
+  //template <typename Ret, typename... Args>
+  //Variant(const std::function<Ret(Args...)> &closure);
   //template <typename T> Variant(const T fun);
 
   ~Variant(void);
@@ -106,8 +120,6 @@ public:
   bool operator!=(const lua_Number num) const;
   bool operator!=(void *const ptr) const;
   bool operator!=(const char *const str) const;
-
-  template <typename... Args> Variant operator()(Args &&... args) const;
 
   // returns new Variant with the desired type
   Variant asBool(void) const;
@@ -150,16 +162,14 @@ public:
   int getType(void) const;
   const char *getTypeString(void) const;
   void setMetatable(const Variant &mt) const;
-  //Variant getMetatable(void) const;
   int getLength(void) const;
   const void *getPointer(void) const;
 
   bool push(void) const;
   bool pull(void);
 
-  Variant getValue(const Variant &key) const;
-  //LuaFieldRef operator[](const Variant &key) const;
 
+#if 0
   // C++11-style iterators
   iterator begin(void);
   const_iterator begin(void) const;
@@ -167,8 +177,7 @@ public:
   iterator end(void);
   const_iterator end(void) const;
   const_iterator cend(void) const;
-
-  //bool iteratePairs(std::function<void(LuaVariant, LuaVariant)> callback);
+#endif
 
   // static constructors
   static Variant fromStack(const int index = -1,
@@ -439,6 +448,7 @@ inline LuaFieldRef LuaFieldRef::operator[](const Variant &key) const {
 }
 #endif
 
+#if 0
 template <typename T> inline Variant::Variant(T *const ref) {
   if (ref) {
     getThread()->push(ref);
@@ -447,16 +457,19 @@ template <typename T> inline Variant::Variant(T *const ref) {
     _setType(LUA_TNIL);
   }
 }
+#endif
 
 inline Variant::Variant(
     const std::initializer_list<VariantKVPair> &pairs) {
   *this = pairs;
 }
 
+#if 0
 template <typename Ret, typename... Args>
 Variant::Variant(const std::function<Ret(Args...)> &closure) {
   setValue<Ret, Args...>(closure);
 }
+#endif
 
 inline Variant::Variant(const Variant &rhs) {
   *this = rhs;
@@ -732,7 +745,7 @@ inline void Variant::_setType(const int luaType, const bool isInteger) {
       _value.ref = LUA_REFNIL;
     }
   }
-  // does this not retain whether it's a weak ref or not?
+
   _type &= ~(ELYSIAN_LUA_VARIANT_TYPE_BIT_MASK |
              ELYSIAN_LUA_VARIANT_INTEGER_BIT_MASK);
   _type |= ((uint32_t)luaType);
@@ -1203,45 +1216,11 @@ inline void Variant::_setRefDirect(const int luaRef) {
   _value.ref = luaRef;
 }
 
-#if 0
-inline bool Variant::iteratePairs(
-    std::function<void(LuaVariant, LuaVariant)> callback) {
-  bool success = true;
-  assert(isIndexable());
-
-  success &= push();
-  if (success) {
-
-    LuaManagerBase::genericIterate(-1, [&](void) {
-      LuaVariant value = LuaVariant::fromStack(-1, false);
-      LuaVariant key = LuaVariant::fromStack(-2, false);
-      success &= !key.isNil();
-      callback(key, value);
-    });
-  }
-
-  lua_pop(*_mainState, 1);
-
-  return success;
-}
-#endif
-
-
 
 inline Variant &
 Variant::operator=(const std::initializer_list<VariantKVPair> &pairs) {
-#if 0
-        lua_newtable(*_mainState);
-        for(auto it : pairs) {
-            it.first.push();
-            it.second.push();
-            lua_settable(*_mainState, -3);
-        }
-        pull();
-#else
   setValue(pairs);
   return *this;
-#endif
 }
 
 #if 0
@@ -1333,6 +1312,15 @@ template <typename T> inline void Variant::setValue(const T lambda) {
   // LuaManager::push(lambda);
   // pull();
 }
+
+inline int Variant::makeStackIndex(void) const {
+    push();
+    return getThread()->toAbsStackIndex(-1);
+}
+inline void Variant::doneWithStackIndex(int index) const {
+    getThread()->remove(index);
+}
+inline bool Variant::isValid(void) const { return isIndexable(); }
 
 } // namespace elysian
 

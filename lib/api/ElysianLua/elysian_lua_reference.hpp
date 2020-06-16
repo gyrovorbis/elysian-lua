@@ -10,21 +10,51 @@ extern "C" {
 
 namespace elysian::lua {
 
-
-#if 0
-
 template<typename CRTP>
 class Referenceable {
-    bool copy()
 
+private:
+    template<typename T>
+    bool assignThroughStack(const Referenceable<T>& rhs) const {
+        static_assert(!CRTP::stackStorage() || T::stackStorage(), "Cannot assign a non-stack ref type to a stack ref type!");
 
+        const int stackIndex = static_cast<const T&>(rhs).makeStackIndex();
+        static_cast<CRTP*>(this)->fromStackIndex(stackIndex);
+        static_cast<const T&>(rhs.doneWithStackIndex(stackIndex));
+    }
+public:
+    Referenceable(void);
+
+    template<typename T>
+    Referenceable(const Referenceable<T>& rhs) {
+        assignThroughStack(rhs);
+    }
+
+    template<typename T>
+    Referenceable(Referenceable<T>&& rhs) {
+        *this = std::move(rhs);
+    }
+
+    template<typename T>
+    const CRTP& operator=(const Referenceable<T>& rhs) const {
+        assignThroughStack(rhs);
+        return *static_cast<CRTP*>(this);
+    }
+
+    template<typename T>
+    const CRTP& operator=(Referenceable<T>&& rhs) const {
+        if constexpr(CRTP::registryStorage() && T::registryStorage()) {
+            static_cast<CRTP*>(this)->setRegistryKey(static_cast<T&&>(rhs)->getRegistryKey());
+            static_cast<T&&>(rhs)->setRegistryKey(LUA_NOREF);
+        } else {
+            assignThroughStack(rhs);
+        }
+    }
+
+    template<typename T>
+    bool operator==(const Referenceable<T>& rhs) const;
 };
 
-#endif
-
-
-
-#if 1
 
 template<typename RefType, typename StateType>
 class StatefulRefBase:
@@ -49,17 +79,6 @@ public:
         RefType::move(this->getThread(), static_cast<RefType&&>(std::move(rhs)));
         rhs.setThread(nullptr);
     }
-#if 0
-    bool copy(const ThreadViewBase* pThread, const RefType& rhs) {
-        release();
-        this->setThread(rhs.getThread());
-
-    }
-
-    bool move(const ThreadViewBase* pThread, RefType&& rhs) {
-        return copy(pThread, std::move(rhs));
-    }
-#endif
 
     StatefulRefBase<RefType, StateType>&
     operator=(const StatefulRefBase<RefType, StateType>& rhs) {
@@ -78,9 +97,30 @@ public:
         return *this;
     }
 
-    bool operator==(const StatefulRefBase<RefType, StateType>& rhs) const {
-        return this->getThread() == rhs.getThread()
-            && this->compare(this->getThread(), rhs);
+    template<typename RefType2, typename StateType2>
+    bool operator==(const StatefulRefBase<RefType2, StateType2>& rhs) const {
+        bool equal = false;
+        lua_State* pLState = this->getThread()? this->getThread()->getState() : nullptr;
+        lua_State* pRState = rhs.getThread()? rhs.getThread()->getState() : nullptr;
+
+        if(pLState == pRState) {
+            if(!pLState) {
+                equal = true;
+            } else {
+                if constexpr(std::is_same_v<RefType, RefType2>) {
+                    equal = this->compare(this->getThread(), rhs);
+                } else {
+                    const int stackIndex1 = this->makeStackIndex();
+                    const int stackIndex2 = rhs.makeStackIndex();
+                    if(stackIndex1 && stackIndex2) {
+                        equal = this->getThread()->compare(stackIndex1, stackIndex2, LUA_OPEQ);
+                    }
+                    rhs.doneWithStackIndex(stackIndex2);
+                    this->doneWithStackIndex(stackIndex1);
+                }
+            }
+        }
+        return equal;
     }
 
     ~StatefulRefBase(void) { release(); }
@@ -165,53 +205,6 @@ private:
 };
 
 
-#endif
-
-
-#if 0
-
-template<typename RefType>
-class StatefulReference: public RefType {
-public:
-    using RefType::isValid;
-    using RefType::push;
-
-    StatefulReference(const ThreadViewBase* pThread);
-    StatefulReference(const StatefulReference<RefType>& other);
-    StatefulReference(StatefulReference<RefType>&& other);
-    ~StatefulReference(void);
-
-    const StatefulReference<RefType>& operator=(const StatefulReference<RefType>& other);
-    const StatefulReference<RefType>& operator=(StatefulReference<RefType>&& other);
-
-    bool operator==(const StatefulReference<RefType>& rhs) const;
-
-    bool isValid(void) const;
-    bool push(void) const;
-    bool pull(void);
-    bool pull(const ThreadViewBase* pThread);
-    bool fromStackIndex(const ThreadViewBase* pThread, int index);
-    int makeStackIndex(void) const;
-    bool doneWithStackIndex(int index) const;
-    bool destroy(const ThreadViewBase* pThread);
-    bool release(const ThreadViewBase* pThread) {
-        return destroy(pThread);
-    }
-    bool release(void) {
-        return release(getThread());
-    }
-
-    const ThreadViewBase* getThread(void) const;
-    constexpr static bool stackStorage(void);
-    constexpr static bool onStack(void);
-
-private:
-    const ThreadViewBase* m_pThread = nullptr;
-};
-
-#endif
-
-
 
 class StatelessRegistryReference {
 public:
@@ -233,8 +226,11 @@ public:
     int makeStackIndex(const ThreadViewBase* pThread) const;
     bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const;
 
-    constexpr static bool onStack(void);
+    int getRegistryKey(void) const;
+    void setRegistryKey(int key);
+
     constexpr static bool stackStorage(void) { return false; }
+    constexpr static bool registryStorage(void) { return true; }
 
 private:
     int m_ref = LUA_NOREF;
@@ -259,10 +255,10 @@ public:
     bool destroy(const ThreadViewBase* pThread);
     bool compare(const ThreadViewBase* pThread, const StatelessStackReference& rhs) const;
 
-    int getIndex(void) const;
-
-    constexpr static bool onStack(void);
+    int getStackIndex(void) const;
+    void setStackIndex(int index);
     constexpr static bool stackStorage(void) { return true; }
+    constexpr static bool registryStorage(void) { return false; }
 
 protected:
     int m_index = 0;
@@ -284,79 +280,24 @@ public:
     int makeStackIndex(const ThreadViewBase* pThread) const;
     bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const;
 
-    constexpr static bool onStack(void);
     constexpr static bool stackStorage(void) { return false; }
+    constexpr static bool registryStorage(void) { return false; }
 };
 
-#if 0
-template<typename RefType>
-inline StatefulReference<RefType>::StatefulReference(const ThreadViewBase* pThread): m_pThread(pThread) {}
-template<typename RefType>
-inline StatefulReference<RefType>::StatefulReference(StatefulReference<RefType>&& other) {
-    *this = std::move(other);
-}
-template<typename RefType>
-inline StatefulReference<RefType>::StatefulReference(const StatefulReference<RefType>& other) {
-    *this = other;
-}
-template<typename RefType>
-inline const StatefulReference<RefType>& StatefulReference<RefType>::operator=(const StatefulReference<RefType>& other) {
-    m_pThread = other.m_pThread;
-    RefType::copy(m_pThread, other);
-    return *this;
-}
-template<typename RefType>
-inline const StatefulReference<RefType>& StatefulReference<RefType>::operator=(StatefulReference<RefType>&& other) {
-    m_pThread = other.m_pThread;
-    RefType::copy(m_pThread, static_cast<RefType&&>(other));
-    return *this;
-}
-template<typename RefType>
-bool StatefulReference<RefType>::operator==(const StatefulReference<RefType>& rhs) const {
-    return (m_pThread == rhs.m_pThread && this->compare(m_pThread, rhs));
-}
-
-template<typename RefType>
-inline StatefulReference<RefType>::~StatefulReference(void) { RefType::destroy(m_pThread); }
-template<typename RefType>
-inline const ThreadViewBase* StatefulReference<RefType>::getThread(void) const { return m_pThread; }
-template<typename RefType>
-inline bool StatefulReference<RefType>::isValid(void) const { return RefType::isValid(m_pThread); }
-template<typename RefType>
-inline bool StatefulReference<RefType>::push(void) const { return RefType::push(m_pThread); }
-template<typename RefType>
-inline bool StatefulReference<RefType>::pull(void) { return RefType::pull(m_pThread); }
-template<typename RefType>
-inline bool StatefulReference<RefType>::pull(const ThreadViewBase* pThread) {
-    destroy(m_pThread);
-    m_pThread = pThread;
-    return pull();
-}
-
-template<typename RefType>
-inline bool StatefulReference<RefType>::fromStackIndex(const ThreadViewBase* pThread, int index) {
-    destroy(m_pThread); //Should we do this at this layer?
-    m_pThread = pThread;
-    return RefType::fromStackIndex(m_pThread, index);
-}
-template<typename RefType>
-inline int StatefulReference<RefType>::makeStackIndex(void) const { return RefType::makeStackIndex(m_pThread); }
-template<typename RefType>
-inline bool StatefulReference<RefType>::doneWithStackIndex(int index) const { return RefType::doneWithStackIndex(m_pThread, index); }
-template<typename RefType>
-inline bool StatefulReference<RefType>::destroy(const ThreadViewBase* pThread) {
-    bool retVal = RefType::destroy(pThread);
-    m_pThread = nullptr;
-    return retVal;
-}
-template<typename RefType>
-inline constexpr bool StatefulReference<RefType>::onStack(void) { return RefType::onStack(); }
-#endif
-
-inline constexpr bool StatelessRegistryReference::onStack(void) { return false; }
-
 inline bool StatelessRegistryReference::compare(const ThreadViewBase* pThread, const StatelessRegistryReference& rhs) const {
-    return m_ref == rhs.m_ref;
+    bool equal = false;
+    if(m_ref == rhs.m_ref) {
+        equal = true;
+    } else {
+        const int index1 = makeStackIndex(pThread);
+        const int index2 = rhs.makeStackIndex(pThread);
+        if(index1 && index2) {
+            equal = pThread->compare(index1, index2, LUA_OPEQ);
+        }
+        rhs.doneWithStackIndex(pThread, index2);
+        doneWithStackIndex(pThread, index1);
+    }
+    return equal;
 }
 
 inline int StatelessRegistryReference::makeStackIndex(const ThreadViewBase* pThread) const {
@@ -368,18 +309,22 @@ inline int StatelessRegistryReference::makeStackIndex(const ThreadViewBase* pThr
 }
 
 inline bool StatelessRegistryReference::doneWithStackIndex(const ThreadViewBase* pThread, int index) const {
-    pThread->remove(index); return true;
+    if(index) pThread->remove(index); return true;
 }
 
-inline int StatelessStackReference::getIndex(void) const { return m_index; }
+inline int StatelessRegistryReference::getRegistryKey(void) const { return m_ref; }
+inline void StatelessRegistryReference::setRegistryKey(int key) { m_ref = key; }
 
-inline bool StatelessStackReference::push(const ThreadViewBase* pThread) const { pThread->pushValue(getIndex()); return true; }
+inline void StatelessStackReference::setStackIndex(int index) { m_index = index; }
+inline int StatelessStackReference::getStackIndex(void) const { return m_index; }
+
+inline bool StatelessStackReference::push(const ThreadViewBase* pThread) const { pThread->pushValue(getStackIndex()); return true; }
 
 inline bool StatelessStackReference::pull(const ThreadViewBase* pThread) { return fromStackIndex(pThread, -1); }
 
-inline bool StatelessStackReference::fromStackIndex(const ThreadViewBase* pThread, int index) { m_index = pThread->toAbsStackIndex(index); return true; }
+inline bool StatelessStackReference::fromStackIndex(const ThreadViewBase* pThread, int index) { if(index) m_index = pThread->toAbsStackIndex(index); return true; }
 
-inline int StatelessStackReference::makeStackIndex(const ThreadViewBase* pThread) const { return getIndex(); }
+inline int StatelessStackReference::makeStackIndex(const ThreadViewBase* pThread) const { return getStackIndex(); }
 
 inline bool StatelessStackReference::doneWithStackIndex(const ThreadViewBase*, int) const { return true; }
 
@@ -401,16 +346,16 @@ inline bool StatelessStackReference::copy(const ThreadViewBase* pThread, const S
 inline bool StatelessStackReference::compare(const ThreadViewBase* pThread, const StatelessStackReference& rhs) const {
     bool equal = false;
     // Quick, dumbass stack index comparison
-    if(getIndex() == rhs.getIndex()) {
+    if(getStackIndex() == rhs.getStackIndex()) {
         equal = true;
     } else {
-        equal = pThread->compare(getIndex(), rhs.getIndex(), LUA_OPEQ);
+        if(getStackIndex() != 0 && rhs.getStackIndex() != 0) {
+            equal = pThread->compare(getStackIndex(), rhs.getStackIndex(), LUA_OPEQ);
+        }
     }
 
     return equal;
 }
-
-inline constexpr bool StatelessStackReference::onStack(void) { return true; }
 
 inline bool StatelessGlobalsTablePsuedoReference::copy(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference& other) {
     return true;
@@ -433,10 +378,8 @@ inline int StatelessGlobalsTablePsuedoReference::makeStackIndex(const ThreadView
 }
 
 inline bool StatelessGlobalsTablePsuedoReference::doneWithStackIndex(const ThreadViewBase* pThread, int index) const {
-    pThread->remove(index); return true;
+    if(index) pThread->remove(index); return true;
 }
-
-inline constexpr bool StatelessGlobalsTablePsuedoReference::onStack(void) { return false; }
 
 inline bool StatelessGlobalsTablePsuedoReference::move(const ThreadViewBase* pThread, const StatelessGlobalsTablePsuedoReference&& other) { return true; }
 
