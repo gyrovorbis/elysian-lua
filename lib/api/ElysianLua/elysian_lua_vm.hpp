@@ -18,7 +18,7 @@ public:
   static_assert(LUA_EXTRASPACE >= sizeof(Thread *),
                 "Not enough space to store thread pointers in lua_State!");
 
-  static bool initialize(void);
+  static bool initialize(lua_State *pState = nullptr);
   static bool uninitialize(void);
 
   static Thread *getMainThread(void);
@@ -49,7 +49,7 @@ private:
     size_t size;
   };
 
-  static bool _createMainThread(const char *pName);
+  static bool _createMainThread(lua_State *pState, const char *pName);
   static bool _destroyMainThread(void);
 
   static void *_luaAlloc(void *ud, void *ptr, size_t osize, size_t nsize);
