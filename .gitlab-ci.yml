@@ -33,10 +33,12 @@ build clang:
     
 test gcc:
   extends: .test_common
+  needs: ["build gcc"]
   tags:
     - linux
     
 test clang:
   extends: .test_common
+  needs: ["build clang"]
   tags:
     - master
