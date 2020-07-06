@@ -5,7 +5,10 @@ stages:
 .build_common:
   stage: build
   script:
-    - echo "Hello BUILD from ${CC}"
+    - mkdir build
+    - cd build
+    - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=/home/falco/Qt/5.15.0/gcc_64 -G Ninja
+    - ninja
     
 build gcc:
   extends: .build_common
@@ -13,6 +16,7 @@ build gcc:
     - linux
   variables:
     CC: gcc
+    CXX: g++
     
 build clang:
   extends: .build_common
@@ -20,11 +24,12 @@ build clang:
     - master
   variables:
      CC: clang
+     CXX: clang++
     
 .test_common:
   stage: test
   script:
-    - echo "Hello TEST from ${CI_JOB_NAME}"
+    - test/ElysianLuaTests
     
 test gcc:
   extends: .test_common
