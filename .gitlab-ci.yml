@@ -1,8 +1,8 @@
 .build_common:
   stage: build
-  cache:
-    paths:
-      - build/
+#  cache:
+#    paths:
+#      - build/
   script:
     - mkdir build
     - cd build
