@@ -4,6 +4,11 @@
 # see https://hub.docker.com/_/gcc/
 #image: gcc
 
+job:
+  tags:
+    - linux
+    - ubuntu
+
 build:
   stage: build
   # instead of calling g++ directly you can also use some build toolkit like make
