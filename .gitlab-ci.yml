@@ -1,31 +1,33 @@
-# This file is a template, and might need editing before it works on your project.
-# use the official gcc image, based on debian
-# can use verions as well, like gcc:5.2
-# see https://hub.docker.com/_/gcc/
-#image: gcc
 
-build:
+stages:
+  - build
+  - test
+
+build gcc:
   stage: build
-  # instead of calling g++ directly you can also use some build toolkit like make
-  # install the necessary build tools when needed
-  # before_script: 
-  #   - apt update && apt -y install make autoconf 
   tags:
     - linux
   script: 
-    - echo "hello world!"
+    - echo "build GCC!"
     
+build clang:
+  stage: build
+  tags:
+    - master
+  script:
+    - echo "build Clang!"
     
-  #artifacts:
-  #  paths:
-  #    - mybinary
-  # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
-  # cache:
-  #   paths:
-  #     - "*.o"
-
-# run tests using the binary built before
-#test:
-#  stage: test
-#  script:
-#    - ./runmytests.sh
+test gcc:
+  stage: test
+  tags:
+    - linux
+  script:
+    - echo "Test GCC!"
+    
+test clang:
+  stage: test
+  tags:
+    - linux
+  script:
+    - echo "Test GCC!"
+    
