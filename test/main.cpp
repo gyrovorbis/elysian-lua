@@ -30,5 +30,5 @@ int main(int argc, char* argv[]) {
     testSuite.enqueueTestSet(new ThreadViewTestSet);
     testSuite.enqueueTestSet(new VariantTestSet);
 
-    return testSuite.exec(argc, argv);
+    return !testSuite.exec(argc, argv);
 }
