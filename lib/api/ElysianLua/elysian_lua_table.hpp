@@ -136,7 +136,7 @@ inline void TableBase<RefType, GlobalsTable>::pushFunc(void) const {
 
 template<typename RefType, bool GlobalsTable>
 inline TableBase<RefType, GlobalsTable>::operator bool() const {
-    return isValid() && !isNilRef();
+    return isValid() && !static_cast<const RefType*>(this)->isNilRef();
 }
 
 template<typename RefType, bool GlobalsTable>

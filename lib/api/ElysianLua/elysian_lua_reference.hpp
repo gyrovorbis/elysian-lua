@@ -4,7 +4,6 @@
 #include "elysian_lua_thread_view_base.hpp"
 #include "elysian_lua_traits.hpp"
 
-
 extern "C" {
 #   include <lua/lauxlib.h>
 }

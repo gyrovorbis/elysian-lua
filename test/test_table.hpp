@@ -192,7 +192,7 @@ inline void TableTestSetBase<TableType>::tableCreateCopyConstruct(void) {
 template<typename TableType>
 inline void TableTestSetBase<TableType>::tablePush(void) {
     thread().pushNewTable();
-    TableType table = thread().toValue<TableType>(-1);
+    TableType table = thread().template toValue<TableType>(-1);
     QVERIFY(m_pThreadView->push(table));
     QVERIFY(m_pThreadView->getType(-1) == LUA_TTABLE);
     QVERIFY(m_pThreadView->compare(-1, -2, LUA_OPEQ));
@@ -273,7 +273,7 @@ template<typename T>
 inline TableType TableTestSetBase<TableType>::fromTable(T&& table) {
     if constexpr(StackReferenceable<TableType>) {
         thread().push(std::forward<T>(table));
-        return thread().toValue<TableType>(-1);
+        return thread().template toValue<TableType>(-1);
     } else {
         return std::forward<T>(table);
     }

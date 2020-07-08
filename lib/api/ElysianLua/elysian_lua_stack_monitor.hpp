@@ -6,7 +6,6 @@
 #include "elysian_lua_forward_declarations.hpp"
 #include "elysian_lua_traits.hpp"
 #include "elysian_lua_stack_frame.hpp"
-#include "elysian_lua_reference.hpp"
 
 namespace elysian::lua {
 
@@ -75,21 +74,20 @@ public:
     int getCurrentValue(void) const;
 };
 
-
 class RegistryRefCountMonitor:
-        public Monitor<RegistryRefCountMonitor, int64_t>,
-        public StaticRefState
+        public Monitor<RegistryRefCountMonitor, int64_t>
 {
 public:
     RegistryRefCountMonitor(void);
     int64_t getCurrentValue(void) const;
+    const ThreadViewBase* getThread(void) const;
 };
 
 
 template<Monitorable M, bool RAII=true>
 class ScopeGuard: public M  {
 public:
-    using ValueType = M::ValueType;
+    using ValueType = typename M::ValueType;
 
     ScopeGuard(M monitor={}, ValueType expectedDelta={}, CppExecutionContext ctx=CppExecutionContext());
     ~ScopeGuard(void);
@@ -109,6 +107,7 @@ class StackGuard:
         public ScopeGuard<StackMonitor, RAII>
 {
 public:
+    using ValueType = typename ScopeGuard<StackMonitor, RAII>::ValueType;
     StackGuard(const ThreadViewBase* pThread, ValueType expectedDelta={}, CppExecutionContext ctx = CppExecutionContext());
 };
 
@@ -117,6 +116,7 @@ class RegistryRefCountGuard:
         public ScopeGuard<RegistryRefCountMonitor, RAII>
 {
 public:
+    using ValueType = typename ScopeGuard<RegistryRefCountMonitor, RAII>::ValueType;
     RegistryRefCountGuard(ValueType expectedDelta={}, CppExecutionContext ctx = CppExecutionContext());
 };
 
@@ -154,7 +154,7 @@ inline ScopeGuard<M, RAII>::ScopeGuard(M monitor, ValueType expectedDelta, CppEx
     m_expectedDelta(std::move(expectedDelta)),
     m_cppCtx(std::move(ctx))
 {
-    if constexpr(RAII) begin();
+    if constexpr(RAII) this->begin();
 }
 
 template<Monitorable M, bool RAII>
@@ -171,18 +171,17 @@ inline const CppExecutionContext& ScopeGuard<M, RAII>::getCppExecutionContext(vo
 template<Monitorable M, bool RAII>
 inline auto ScopeGuard<M, RAII>::end(void) -> ValueType {
     const auto delta = M::end();
-    const Thread* pThread = Thread::fromState(getThread()->getState());
 
     if(delta != getExpectedDelta()) {
-        pThread->setCurrentCppExecutionContext(m_cppCtx);
+        this->getThread()->setCurrentCppExecutionContext(m_cppCtx);
 #if ELYSIAN_LUA_STACK_GUARD_OPTION == ELYSIAN_LUA_STACK_GUARD_LUA_ERROR
-        getThread()->error("INVALID STACK DELTA [Expected: %d, Actual: %d, Begin: %d, End: %d]", getExpectedDelta(), delta, getBeginValue(), getEndValue());
+        this->getThread()->error("INVALID STACK DELTA [Expected: %d, Actual: %d, Begin: %d, End: %d]", getExpectedDelta(), delta, this->getBeginValue(), this->getEndValue());
 #elif ELYSIAN_LUA_STACK_GUARD_OPTION == ELYSIAN_LUA_STACK_GUARD_LUA_WARNING
-        getThread()->warn("INVALID STACK DELTA [Expected: %d, Actual: %d, Begin: %d, End: %d]", getExpectedDelta(), delta, getBeginValue(), getEndValue());
+        this->getThread()->warn("INVALID STACK DELTA [Expected: %d, Actual: %d, Begin: %d, End: %d]", getExpectedDelta(), delta, this->getBeginValue(), this->getEndValue());
 #elif ELYSIAN_LUA_STACK_GUARD_OPTION == ELYSIAN_LUA_STACK_GUARD_ASSERT
     assert(false);
 #endif
-        pThread->syncCppCallerContexts();
+        this->getThread()->syncCppCallerContexts();
     }
     return delta;
 }

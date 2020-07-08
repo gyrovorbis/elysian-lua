@@ -1,8 +1,9 @@
 #include <cassert>
 
+#include <ElysianLua/elysian_lua_table.hpp>
 #include <ElysianLua/elysian_lua_stack_monitor.hpp>
 #include <ElysianLua/elysian_lua_vm.hpp>
-#include <ElysianLua/elysian_lua_thread_view_base.hpp>
+#include <ElysianLua/elysian_lua_thread.hpp>
 
 namespace elysian::lua {
 
@@ -12,6 +13,8 @@ namespace elysian::lua {
 {}
 
 int StackMonitor::getCurrentValue(void) const { assert(getThread()); return getThread()->getTop(); }
+
+const ThreadViewBase* RegistryRefCountMonitor::getThread(void) const { return LuaVM::getMainThread(); }
 
 int64_t RegistryRefCountMonitor::getCurrentValue(void) const { return LuaVM::getRegistryRefCount(); }
 

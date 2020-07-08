@@ -5,6 +5,8 @@
 
 namespace elysian::lua {
 
+class ThreadViewBase;
+
 struct ObjectBase {};
 
 template<typename RefType>

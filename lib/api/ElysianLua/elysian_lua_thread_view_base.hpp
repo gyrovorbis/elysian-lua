@@ -12,6 +12,7 @@ extern "C" {
 }
 
 #include "elysian_lua_forward_declarations.hpp"
+#include "elysian_lua_stack_monitor.hpp"
 
 #define ELYSIAN_LUA_PUSH_LITERAL(T, L) \
     lua_pushliteral(T, L)
@@ -135,9 +136,6 @@ public:
     int getFunctionCallDepth(void) const;
 
     operator lua_State *(void)const;
-
-    template<typename K>
-    GlobalsTableProxy<K> operator[](K key);
 
     int push(void) const; // doesn't do shit
     int push(std::nullptr_t) const;
@@ -584,11 +582,6 @@ inline int ThreadViewBase::numberToInteger(lua_Number n, lua_Integer* p) {
 
 inline ThreadViewBase::operator lua_State *(void)const { return m_pState; }
 
-template<typename K>
-inline GlobalsTableProxy<K> ThreadViewBase::operator[](K key) {
-    return GlobalsTableProxy<K>(getGlobalsTable(), std::make_tuple(std::move(key)));
-}
-
 inline ThreadViewBase::ThreadViewBase(lua_State* pState): m_pState(pState) {}
 
 inline int ThreadViewBase::getTop(void) const { return lua_gettop(m_pState); }
@@ -990,7 +983,7 @@ inline int ThreadViewBase::getTableMulti(int index, const std::tuple<Keys...>& k
 template<typename C, std::size_t... Is>
 inline int ThreadViewBase::getTableMulti(int index, const C& container, std::index_sequence<Is...>) const {
     const int absIndex = toAbsStackIndex(index);
-    StackGuard guard(this, 1);
+    StackGuard<true> guard(this, 1);
 
     auto processElement = [&](const C& cont, auto Idx) {
         /* Compile-time shenanigans to avoid having to duplicate the source

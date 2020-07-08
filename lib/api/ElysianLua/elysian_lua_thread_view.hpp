@@ -23,6 +23,9 @@ public:
     std::enable_if_t<stack_impl::stack_table_type<T>, StackTable>
     createTable(const T& table) const;
 
+    template<typename K>
+    GlobalsTableProxy<K> operator[](K key);
+
 protected:
     ThreadView(void) = default;
 
@@ -38,6 +41,10 @@ ThreadView::createTable(const T& value) const {
     return toValue<StackTable>(-1);
 }
 
+template<typename K>
+inline GlobalsTableProxy<K> ThreadView::operator[](K key) {
+    return GlobalsTableProxy<K>(getGlobalsTable(), std::make_tuple(std::move(key)));
+}
 
 }
 

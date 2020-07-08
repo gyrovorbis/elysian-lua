@@ -266,7 +266,7 @@ inline void StatelessReferenceTestSet<R>::copyAssign() {
 
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().isLightUserdata(-1));
-        QVERIFY(thread().toValue<void*>(-1) == reinterpret_cast<void*>(this));
+        QVERIFY(thread().template toValue<void*>(-1) == reinterpret_cast<void*>(this));
     }
 
     thread().pop(2);
@@ -302,7 +302,7 @@ inline void StatelessReferenceTestSet<R>::moveConstruct() {
 
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().isString(-1));
-        QVERIFY(QString(thread().toValue<const char*>(-1)) == "Fucker");
+        QVERIFY(QString(thread().template toValue<const char*>(-1)) == "Fucker");
         QVERIFY(refGuard.getCurrentDelta() == 1);
     } else {
 
@@ -331,7 +331,7 @@ inline void StatelessReferenceTestSet<R>::moveAssign() {
 
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().isLightUserdata(-1));
-        QVERIFY(thread().toValue<void*>(-1) == reinterpret_cast<void*>(this));
+        QVERIFY(thread().template toValue<void*>(-1) == reinterpret_cast<void*>(this));
     } else {
         thread().isTable(-1);
     }

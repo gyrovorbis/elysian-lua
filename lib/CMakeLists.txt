@@ -53,6 +53,7 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_table.hpp
     api/ElysianLua/elysian_lua_callable.hpp
     api/ElysianLua/elysian_lua_function.hpp
+    api/ElysianLua/elysian_lua_reference_base.hpp
     api/ElysianLua/elysian_lua_reference.hpp
     api/ElysianLua/elysian_lua_proxy.hpp
     api/ElysianLua/elysian_lua_table_proxy.hpp
