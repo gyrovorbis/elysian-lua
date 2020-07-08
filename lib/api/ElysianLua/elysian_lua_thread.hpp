@@ -29,7 +29,7 @@ private:
 
     mutable std::vector<CppExecutionContext> m_cppCallerContexts;
 
-    char    m_name[ELYSIAN_LUA_THREAD_NAME_SIZE];
+    char     m_name[ELYSIAN_LUA_THREAD_NAME_SIZE];
     Thread*  m_parentState = nullptr;
 
     uint64_t m_allocBytes = 0;

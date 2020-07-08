@@ -19,17 +19,18 @@ set(ELYSIAN_LUA_STACK_GUARD_OPTION ELYSIAN_LUA_STACK_GUARD_ASSERT CACHE STRING "
 set_property(CACHE ELYSIAN_LUA_STACK_GUARD_OPTION
     PROPERTY STRINGS ${ELYSIAN_LUA_STACK_GUARD_OPTIONS})
 
-option(ELYSIAN_LUA_DEBUG "Enable Debug" ON)
+# option(ELYSIAN_LUA_DEBUG "Enable Debug" ON)
 option(ELYSIAN_LUA_USE_STD_STRING "Compile with std::string Support" OFF)
-option(ELYSIAN_LUA_PUSH_NULL_AS_NIL "Push any pointer type with a value of NULL as nil" ON)
+# option(ELYSIAN_LUA_PUSH_NULL_AS_NIL "Push any pointer type with a value of NULL as nil" ON)
+option(ELYSIAN_LUA_ENABLE_CONCEPTS "Use C++20 Concepts" ON)
 
 if (NOT ELYSIAN_LUA_STACK_GUARD_OPTION IN_LIST ELYSIAN_LUA_STACK_GUARD_OPTIONS)
   message(FATAL_ERROR "Specify ELYSIAN_LUA_STACK_GUARD_OPTION. Must be one of ${ELYSIAN_LUA_STACK_GUARD_OPTIONS}")
 endif()
 
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(ELYSIAN_LUA_SOURCES
@@ -38,7 +39,8 @@ set(ELYSIAN_LUA_SOURCES
     source/elysian_lua_thread.cpp
     source/elysian_lua_reference.cpp
     source/elysian_lua_buffer.cpp
-    source/elysian_lua_protected_block.cpp)
+    source/elysian_lua_protected_block.cpp
+    source/elysian_lua_stack_monitor.cpp)
 
 set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_forward_declarations.hpp
@@ -88,6 +90,20 @@ target_compile_definitions(libElysianLua
     PUBLIC
         ELYSIAN_LUA_STACK_GUARD_OPTION=${ELYSIAN_LUA_STACK_GUARD_OPTION}
 )
+
+if(ELYSIAN_LUA_USE_STD_STRING)
+    target_compile_definitions(libElysianLua
+        PRIVATE
+            ELYSIAN_LUA_USE_STD_STRING
+    )
+endif()
+
+if(ELYSIAN_LUA_ENABLE_CONCEPTS)
+    target_compile_definitions(libElysianLua
+        PRIVATE
+            ELYSIAN_LUA_ENABLE_CONCEPTS
+    )
+endif()
 
 
 target_link_libraries(libElysianLua

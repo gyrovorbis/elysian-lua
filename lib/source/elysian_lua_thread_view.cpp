@@ -2,9 +2,30 @@
 #include <ElysianLua/elysian_lua_object.hpp>
 #include <ElysianLua/elysian_lua_reference.hpp>
 #include <ElysianLua/elysian_lua_function_result.hpp>
+#include <ElysianLua/elysian_lua_vm.hpp>
 #include <cstdarg>
 
 namespace elysian::lua {
+
+
+int ThreadViewBase::ref(int index) const {
+#ifdef ELYSIAN_LUA_DEBUG
+
+#endif
+    if(index == LUA_REGISTRYINDEX) {
+        LuaVM::setRegistryRefCount(LuaVM::getRegistryRefCount() + 1);
+    }
+    return luaL_ref(m_pState, index);
+}
+
+void ThreadViewBase::unref(int table, int ref) const {
+    if(table == LUA_REGISTRYINDEX && ref != LUA_NOREF) {
+        int64_t count = LuaVM::getRegistryRefCount();
+        assert(--count >= 0);
+        LuaVM::setRegistryRefCount(count);
+    }
+    luaL_unref(m_pState, table, ref);
+}
 
 const char* ThreadViewBase::pushStringFormatted(const char *pFmt, ...) const {
     va_list args;

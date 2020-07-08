@@ -186,7 +186,7 @@ public:
     void xmove(lua_State* pTo, int n) const;
     void insert(int index) const;
     void rotate(int index, int n) const;
-    int compare(int lhsIndex, int rhsIndex, int op) const;
+    int compare(int lhsIndex=-1, int rhsIndex=-2, int op=LUA_OPEQ) const;
     bool rawEqual(int index1, int index2) const;
     void arith(int op) const;
     void concat(int n) const;
@@ -1001,7 +1001,7 @@ inline int ThreadViewBase::getTableMulti(int index, const C& container, std::ind
 
     int retVal = (processElement(container, std::integral_constant<std::size_t, Is>()), ...);
 
-    insert(guard.getBeginTop() + 1);
+    insert(guard.getBeginValue() + 1);
     pop(std::index_sequence<Is...>::size() - 1);
     return retVal;
 }
@@ -1187,16 +1187,6 @@ inline const char* ThreadViewBase::pushAsString(int index, size_t* pLength) {
     return luaL_tolstring(m_pState, index, pLength);
 }
 
-inline int ThreadViewBase::ref(int index) const {
-    return luaL_ref(m_pState, index);
-}
-inline void ThreadViewBase::unref(int table, int ref) const {
-    luaL_unref(m_pState, table, ref);
-}
-inline void ThreadViewBase::unref(int ref) const {
-    unref(LUA_REGISTRYINDEX, ref);
-}
-
 inline int ThreadViewBase::next(int index) const {
     return lua_next(m_pState, index);
 }
@@ -1286,6 +1276,10 @@ inline int ThreadViewBase::getFunctionCallDepth(void) const {
     int depth = 0;
     while(getStack(depth, &activationRecord)) ++depth;
     return depth;
+}
+
+inline void ThreadViewBase::unref(int ref) const {
+    unref(LUA_REGISTRYINDEX, ref);
 }
 
 }

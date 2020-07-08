@@ -16,6 +16,7 @@ namespace elysian::lua {
 AllocStats LuaVM::_allocStats;
 Thread *LuaVM::_pMainThread = nullptr;
 Function LuaVM::m_globalMessageHandler;
+int64_t LuaVM::m_registryRefCount = 0;
 
 static constexpr const char _rPrint[] =
         #if 0
@@ -85,7 +86,7 @@ bool LuaVM::initialize(lua_State *pState) {
 
 bool LuaVM::uninitialize(void) {
   bool success = true;
-  m_globalMessageHandler.getRef().release();
+  m_globalMessageHandler.getRef().release(m_globalMessageHandler.getThread());
   success &= _destroyMainThread();
   return success;
 }

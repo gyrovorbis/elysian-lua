@@ -3,6 +3,15 @@
 
 #include <tuple>
 
+#if __cplusplus >= 201703L
+#  ifndef ELYSIAN_LUA_ENABLE_CONCEPTS
+#    define ELYSIAN_LUA_ENABLE_CONCEPTS 1
+#  endif
+#elif __cplusplus == 201703L
+#  define ELYSIAN_LUA_ENABLE_CONCEPTS 0
+#else
+    static_assert(false, "C++17 version or later required for template fuckery!");
+#endif
 
 #define ELYSIAN_LUA_GET_VARIADIC_MACRO_2(_1, _2, NAME, ...) NAME
 
@@ -42,25 +51,21 @@ namespace elysian::lua {
 template<typename RefType, typename StateType>
 class StatefulRefBase;
 
-template<typename RefType>
-class StatefulReference;
-
-class StatelessStackReference;
-class StatelessRegistryReference;
-class StatelessGlobalsTablePsuedoReference;
+class StatelessRegRef;
+class StatelessStackRef;
+class StatelessGlobalsTableFixedRef;
 
 class ExplicitRefState;
 class StaticRefState;
 
-using GlobalsTablePsuedoRef = StatefulRefBase<StatelessGlobalsTablePsuedoReference, ExplicitRefState>;
-using RegistryRef = StatefulRefBase<StatelessRegistryReference, ExplicitRefState>;
-using StaticRegistryRef = StatefulRefBase<StatelessRegistryReference, StaticRefState>;
-using StackRef = StatefulRefBase<StatelessStackReference, ExplicitRefState>;
-using StaticStackRef = StatefulRefBase<StatelessStackReference, StaticRefState>;
+using GlobalsTablePsuedoRef = StatefulRefBase<StatelessGlobalsTableFixedRef, ExplicitRefState>;
+using RegistryRef = StatefulRefBase<StatelessRegRef, ExplicitRefState>;
+using StaticRegistryRef = StatefulRefBase<StatelessRegRef, StaticRefState>;
+using StackRef = StatefulRefBase<StatelessStackRef, ExplicitRefState>;
+using StaticStackRef = StatefulRefBase<StatelessStackRef, StaticRefState>;
 
 template<typename RefType>
 class Object;
-
 
 template<typename RefType, bool GlobalsTable=false>
 class TableBase;
@@ -78,7 +83,6 @@ class FunctionBase;
 
 using Function = FunctionBase<RegistryRef>;
 using StackFunction = FunctionBase<StackRef>;
-
 
 template<typename T, typename Key>
 class TableProxy;
@@ -112,11 +116,8 @@ class Callable;
 struct StackRecord;
 
 class CppExecutionContext;
-class StackMonitor;
-template<bool RAII=true>
-class StackGuard;
-class ProtectedBlock;
 
+class ProtectedBlock;
 
 namespace stack_impl {
 

@@ -50,6 +50,13 @@ template <typename... Args>
     //using sfinae_decay_types = std::enable_if_t<(std::is_same<T, std::decay<Es>>) || ...)
 }
 
+#ifdef ELYSIAN_LUA_ENABLE_CONCEPTS
+
+
+    template<typename T, typename U>
+    concept same_as = std::is_same_v<T, U> && std::is_same_v<U, T>;
+#endif
+
 
 
 #endif // ELYSIAN_LUA_TRAITS_HPP

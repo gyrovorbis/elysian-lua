@@ -1,6 +1,7 @@
 #include "elysian_qtest.hpp"
 #include "test_stack.hpp"
 #include "test_globals_table.hpp"
+#include "test_reference.hpp"
 #include "test_table.hpp"
 #include "test_table_proxy.hpp"
 #include "test_function.hpp"
@@ -16,6 +17,7 @@ int main(int argc, char* argv[]) {
 
     UnitTestSuite testSuite;
     testSuite.enqueueTestSet(new StackTestSet);
+    testSuite.enqueueTestSet(new StatelessRegistryReferenceTestSet);
     testSuite.enqueueTestSet(new GlobalsTableTestSet);
     testSuite.enqueueTestSet(new TableTestSet);
     testSuite.enqueueTestSet(new StackTableTestSet);

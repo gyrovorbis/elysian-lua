@@ -136,12 +136,13 @@ inline void TableBase<RefType, GlobalsTable>::pushFunc(void) const {
 
 template<typename RefType, bool GlobalsTable>
 inline TableBase<RefType, GlobalsTable>::operator bool() const {
-    return isValid();
+    return isValid() && !isNilRef();
 }
 
 template<typename RefType, bool GlobalsTable>
 inline bool TableBase<RefType, GlobalsTable>::isValid(void) const {
-    return static_cast<const RefType*>(this)->isValid();
+    return static_cast<const RefType*>(this)->isValid() &&
+            getType() == LUA_TTABLE;
 }
 
 template<typename RefType, bool GlobalsTable>
@@ -206,20 +207,20 @@ template<typename RefType2, bool GlobalsTable2>
 inline const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator=(const TableBase<RefType2, GlobalsTable2>& rhs) {
     static_assert(!GlobalsTable || GlobalsTable2, "Cannot assign a non-globals table to a globals table!");
-    static_assert(!(RefType::stackStorage() && !RefType2::stackStorage()), "Cannot assign a stack reference to non-stack object!");
+    static_assert(!(StackReferenceable<RefType> && !StackReferenceable<RefType2>), "Cannot assign a stack reference to non-stack object!");
 
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
             static_cast<RefType&>(this) = static_cast<const RefType2&>(rhs);
-        } else if constexpr(RefType::stackStorage() && RefType2::stackStorage()) {
+        } else if constexpr(StackReferenceable<RefType> && StackReferenceable<RefType2>) {
             this->fromStackIndex(rhs.getThread(), rhs.getStackIndex());
         } else { // Manually copy via stack
             this->getThread()->push(rhs);
             this->pull(this->getThread());
         }
     } else {
-        this->destroy(this->getThread());
+        this->release(this->getThread());
     }
     return *this;
 }
@@ -229,27 +230,27 @@ template<typename RefType2, bool GlobalsTable2>
 inline const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator=(TableBase<RefType2, GlobalsTable2>&& rhs) {
     static_assert(!GlobalsTable || GlobalsTable2, "Cannot assign a non-globals table to a globals table!");
-    static_assert(!(RefType::stackStorage() && !RefType2::stackStorage()), "Cannot assign a stack reference to non-stack object!");
+    static_assert(!(StackReferenceable<RefType> && !StackReferenceable<RefType2>), "Cannot assign a stack reference to non-stack object!");
 
     if(rhs.isValid()) {
         //Let the reference decide how to handle it
         if constexpr(std::is_same_v<RefType, RefType2>) {
             this->getRef() = std::move(rhs.getRef());
-        } else if constexpr(RefType::stackStorage() && RefType2::stackStorage()) {
+        } else if constexpr(StackReferenceable<RefType> && StackReferenceable<RefType2>) {
             this->fromStackIndex(rhs.getThread(), rhs.getStackIndex());
         } else { // Manually copy via stack
             this->getThread()->push(rhs);
             this->pull(this->getThread());
         }
     } else {
-        this->destroy(this->getThread());
+        this->release(this->getThread());
     }
     return *this;
 }
 
 template<typename RefType, bool GlobalsTable>
 const TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(std::nullptr_t) {
-    this->release();
+    this->release(this->getThread());
     return *this;
 }
 
@@ -257,14 +258,14 @@ template<typename RefType, bool GlobalsTable>
 template<typename T, typename Key>
 inline const TableBase<RefType, GlobalsTable>&
 TableBase<RefType, GlobalsTable>::operator=(const TableProxy<T, Key>& proxy) {
-      static_assert(!RefType::stackStorage(), "Cannot assign a stack reference to non-stack object!");
+      static_assert(!StackReferenceable<RefType>, "Cannot assign a stack reference to non-stack object!");
 
     if(proxy.isValid()) {
         if(proxy.getThread()->push(proxy)) {
             this->pull(proxy.getThread());
         }
     } else {
-        this->destroy(this->getThread());
+        this->release(this->getThread());
     }
     return *this;
 }

@@ -34,6 +34,10 @@ public:
   static void setGlobalMessageHandler(Function handler);
   static const Function& getGlobalMessageHandler(void);
 
+  //Defines/Options for enabling this shit?
+  static int64_t getRegistryRefCount(void);
+  static void setRegistryRefCount(int64_t count);
+
   // lua_register - c function
   // lua_setallocf
   // lua_setWarnf
@@ -60,10 +64,13 @@ private:
   static std::vector<Thread *> _threads;
   static AllocStats _allocStats;
   static Function m_globalMessageHandler;
+  static int64_t m_registryRefCount;
 };
 
 inline const AllocStats &LuaVM::getAllocStats(void) { return _allocStats; }
 inline Thread *LuaVM::getMainThread(void) { return _pMainThread; }
+inline int64_t LuaVM::getRegistryRefCount(void) { return m_registryRefCount; }
+inline void LuaVM::setRegistryRefCount(int64_t count) { m_registryRefCount = count; }
 
 
 

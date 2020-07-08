@@ -31,6 +31,7 @@ protected:
     void tableAppendValues(void);
     void tableAppendTable(void);
     void tableMetaTable(void);
+
     //C++11-style iteration
     //Metatables
 
@@ -270,7 +271,7 @@ inline void TableTestSetBase<TableType>::tableCreateArray(void) {
 template<typename TableType>
 template<typename T>
 inline TableType TableTestSetBase<TableType>::fromTable(T&& table) {
-    if constexpr(TableType::ReferenceType::stackStorage()) {
+    if constexpr(StackReferenceable<TableType>) {
         thread().push(std::forward<T>(table));
         return thread().toValue<TableType>(-1);
     } else {

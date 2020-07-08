@@ -23,8 +23,39 @@ using VariantKVPair = std::pair<Variant, Variant>;
 
 //ifdef for storing strings Lua-side to compare performance?
 
+# if 0
+class StatelessRegRef:
+    public RegistryRefBase<StatelessRegRef>
+{
+public:
+    StatelessRegRef(void) = default;
+    StatelessRegRef(const StatelessRegRef&) = delete;
+    StatelessRegRef& operator=(const StatelessRegRef&) = delete;
+
+    using RegistryRefBase<StatelessRegRef>::operator=;
+
+    template<typename R>
+    requires RegistryReferenceable<std::decay_t<R>>
+    StatelessRegRef(R&& rhs) {
+        setRegistryKey(rhs.getRegistryKey());
+        if constexpr(std::is_rvalue_reference_v<decltype(rhs)>) {
+            rhs.setRegistryKey(LUA_NOREF);
+        }
+    }
+
+    void    setRegistryKey(int key) { m_ref = key; }
+    int     getRegistryKey(void) const { return m_ref; }
+
+private:
+    int m_ref = LUA_NOREF;
+};
+
+#endif
+
+
 class Variant :
         public StaticRefState,
+        public RegistryRefBase<Variant>,
         public TableAccessible<Variant>,
         public Callable<Variant>
 {
@@ -32,6 +63,7 @@ class Variant :
     using const_iterator = const_noconst_iterator<true>;
 
     friend class TableAccessible<Variant>;
+    friend class RegistryRefBase<Variant>;
     friend const_iterator;
 
 protected:
@@ -41,7 +73,7 @@ protected:
     bool boolean;
     lua_Number number;
     lua_Integer integer;
-    int ref = LUA_REFNIL;
+    int ref = LUA_NOREF;
     const char *string;
     void *luserdata;
   } _value;
@@ -63,12 +95,34 @@ protected:
   void _setType(const int luaType, const bool isInteger = false);
   void _setRefDirect(const int luaRef);
 
-  // Table Accessible implementation:
+  //=====   Table Accessible implementation:
   int makeStackIndex(void) const;
   void doneWithStackIndex(int index) const;
-  bool isValid(void) const;
+
 
 public:
+
+ bool isValid(void) const;
+ //=======
+
+  // ====== RegistryRefBase Implementation =====
+  int getRegistryKey(void) const {
+    return getRef();
+  }
+
+  void setRegistryKey(int key) {
+      _type = LUA_TNIL;
+      _value.ref = LUA_NOREF;
+      if(key != LUA_NOREF) {
+         setRef(key);
+      }
+  }
+
+  using RegistryRefBase<Variant>::makeStackIndex;
+  using RegistryRefBase<Variant>::doneWithStackIndex;
+
+  // =====================
+
   Variant(void) = default;
   Variant(const std::initializer_list<VariantKVPair> &pairs);
   //template <typename T> Variant(T *const userdata);
@@ -81,6 +135,18 @@ public:
   Variant(const char *const string);
   Variant(void *const usd);
   Variant(const lua_CFunction funcPtr);
+
+  template<typename R>
+  requires (RegistryReferenceable<std::decay_t<R>> && !std::is_same_v<std::decay_t<R>, Variant>)
+  Variant(R&& rhs) {
+    if constexpr(std::is_rvalue_reference_v<decltype(rhs)>) {
+        setRegistryKey(rhs.getRegistryKey());
+        rhs.setRegistryKey(LUA_NOREF);
+    } else {
+        setRef(rhs.getRegistryKey());
+    }
+  }
+
   //template <typename Ret, typename... Args>
   //Variant(const std::function<Ret(Args...)> &closure);
   //template <typename T> Variant(const T fun);
@@ -101,6 +167,8 @@ public:
   Variant &operator=(const lua_CFunction funcPtr);
   template <typename Ret, typename... Args>
   Variant &operator=(const std::function<Ret(Args...)> &closure);
+
+  using RegistryRefBase<Variant>::operator=;
   //template <typename T> Variant &operator=(const T func);
 
   template <typename T> bool operator==(const T *const ud) const;
@@ -519,7 +587,7 @@ inline Variant &Variant::operator=(Variant &&rhs) {
   if (!rhs.isWeakRef()) { // only steal references if this was a strong
                           // reference
     rhs._type = LUA_TNIL;
-    rhs._value.ref = LUA_REFNIL;
+    rhs._value.ref = LUA_NOREF;
   }
   return *this;
 }
@@ -690,7 +758,7 @@ inline bool Variant::operator!=(const char *const str) const {
 
 inline bool Variant::isNil(void) const { return getType() == LUA_TNIL; }
 inline bool Variant::isNilRef(void) const {
-  return getType() == LUA_TNIL || (isRefType() && _value.ref == LUA_REFNIL);
+  return (isRefType() && _value.ref == LUA_REFNIL);
 }
 inline bool Variant::isRefType(void) const {
   return !(getType() == LUA_TBOOLEAN || getType() == LUA_TNUMBER ||
@@ -742,7 +810,7 @@ inline void Variant::_setType(const int luaType, const bool isInteger) {
     } else if (getType() == LUA_TSTRING) {
       free((void *)_value.string);
     } else if (getType() == LUA_TNIL) {
-      _value.ref = LUA_REFNIL;
+      _value.ref = LUA_NOREF;
     }
   }
 
@@ -754,7 +822,7 @@ inline void Variant::_setType(const int luaType, const bool isInteger) {
 
 inline void Variant::setNil(void) {
   _setType(LUA_TNIL);
-  _value.ref = LUA_REFNIL;
+  _value.ref = LUA_NOREF;
 }
 
 template <typename T> inline void Variant::setValue(T *const ud) {

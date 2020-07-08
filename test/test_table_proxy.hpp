@@ -3,6 +3,8 @@
 
 #include "test_base.hpp"
 
+// Field Reference
+
 namespace elysian::lua::test {
 
 class TableProxyTestSet: public TestSetBase {
@@ -13,7 +15,7 @@ private slots:
     void tableProxyConversion(void);
     void tableProxyAssignment(void);
     void tableProxyComparison(void);
-    void tableReferenceCreate(void);
+    void tableFieldReferenceCreate(void);
 
 private:
 
@@ -168,7 +170,7 @@ inline void TableProxyTestSet::tableProxyComparison(void) {
             table["TableProxyTestSet"][3]["5"][true][reinterpret_cast<void*>(0xdeadbeef)]);
 }
 
-inline void TableProxyTestSet::tableReferenceCreate(void) {
+inline void TableProxyTestSet::tableFieldReferenceCreate(void) {
     Table table = proxyTable();
 
     TableFieldRef<Table, int> intField = &table["TableProxyTestSet"][4];
