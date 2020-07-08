@@ -23,6 +23,7 @@ add_executable(ElysianLuaTests
     test_operators.hpp
     test_thread_view.hpp
     test_variant.hpp
+    test_stateless_reference.hpp
     test_reference.hpp
     main.cpp)
 

@@ -3,6 +3,7 @@
 
 #include "elysian_lua_thread_view_base.hpp"
 #include "elysian_lua_traits.hpp"
+#include "elysian_lua_thread_state.hpp"
 
 extern "C" {
 #   include <lua/lauxlib.h>
@@ -13,7 +14,7 @@ namespace elysian::lua {
 class Variant;
 
 struct StatelessRefBaseTag {};
-struct RefStateBaseTag {};
+
 
 template<typename CRTP>
 class RegistryRefBase;
@@ -35,12 +36,6 @@ concept StackPullable = requires(T t, const ThreadViewBase* pThread) {
 
 template<typename T>
 concept StackCompatible = StackPushable<T> && StackPullable<T>;
-
-template<typename T>
-concept StatefulObject =
-        requires(T t) {
-            { t.getThread() } -> same_as<const ThreadViewBase*>;
-        }; 
 
 template<typename R>
 concept BasicReferenceable =
@@ -99,6 +94,15 @@ concept StackReferenceable =
         { r.setStackIndex(0) };
     };
 
+template<typename Dst, typename Src>
+concept MoveCompatibleReferenceables =
+    WritableReferenceable<Dst> &&
+    ReadableReferenceable<Src> &&
+    requires(Src src) {
+        { Dst::move(nullptr, std::move(src)) };
+    };
+
+
 #endif
 
 template<typename RefType, typename StateType>
@@ -106,54 +110,69 @@ class StatefulRefBase:
         public RefType,
         public StateType
 {
-public:
+    static_assert(ReadableReferenceable<RefType>, "RefType must meet constraints of the ReadableReferenceable concept!");
+    static_assert(ThreadStateful<StateType>, "StateType must meet constraints of the ThreadStateful concept!");
 
-    StatefulRefBase(const ThreadViewBase* pThread=nullptr) {
+public:
+    // Default constructor
+    StatefulRefBase(void) = default;
+
+    // Stateful thread constructor
+    StatefulRefBase(const ThreadViewBase* pThread)
+        requires(ModifiableThreadStateful<StateType>)
+    {
         StateType::setThread(pThread);
     }
 
-    StatefulRefBase(const StatefulRefBase<RefType, StateType>& rhs):
-        StateType(static_cast<const StateType&>(rhs))
-    {
-        RefType::copy(this->getThread(), static_cast<const RefType&>(rhs));
+    // Copy constructor (REQUIRED)
+    StatefulRefBase(const StatefulRefBase<RefType, StateType>& rhs) {
+        copy(rhs);
     }
 
-    StatefulRefBase(StatefulRefBase<RefType, StateType>&& rhs):
-        StateType(static_cast<StateType&&>(std::move(rhs)))
-    {
-        RefType::move(this->getThread(), static_cast<RefType&&>(std::move(rhs)));
-        rhs.setThread(nullptr);
+    // Generic copy constructor
+    template<typename R2>
+    StatefulRefBase(const R2& rhs) {
+        copy(rhs);
     }
 
-    StatefulRefBase<RefType, StateType>&
-    operator=(const StatefulRefBase<RefType, StateType>& rhs) {
-        release(this->getThread());
-        this->setThread(rhs.getThread());
-        RefType::copy(this->getThread(), static_cast<const RefType&>(rhs));
+    // Generic move constructor
+    template<typename RefType2>
+    StatefulRefBase(RefType2&& rhs)
+        requires std::is_rvalue_reference_v<decltype(rhs)>
+    {
+        move(std::move(rhs));
+    }
+
+    // Copy assignment operator
+    template<typename R2>
+    StatefulRefBase<RefType, StateType>& operator=(const R2& rhs) {
+        release();
+        copy(rhs);
         return *this;
     }
 
+    //  Move assignment operator
+    template<typename RefType2>
     StatefulRefBase<RefType, StateType>&
-    operator=(StatefulRefBase<RefType, StateType>&& rhs) {
-        release(this->getThread());
-        this->setThread(rhs.getThread());
-        RefType::move(this->getThread(), static_cast<RefType&&>(std::move(rhs)));
-        rhs.setThread(nullptr);
+    operator=(RefType2&& rhs)
+        requires std::is_rvalue_reference_v<decltype(rhs)>
+    {
+        release();
+        move(std::forward<RefType2>(rhs));
         return *this;
     }
 
+    // Generic equality comparison operator
     template<typename R>
-    requires ReadableReferenceable<R>
+        requires ReadableReferenceable<R>
     bool operator==(const R& rhs) const {
         bool equal = false;
-        lua_State* pLState = this->getThread()? this->getThread()->getState() : nullptr;
-        lua_State* pRState = rhs.getThread()? rhs.getThread()->getState() : nullptr;
 
-        if(pLState == pRState) {
-            if(!pLState) {
+        if(ThreadViewBase::compare(this->getThread(), rhs.getThread())) {
+            if(!this->getThread()) {
                 equal = true;
             } else {
-                if constexpr(std::is_convertible_v<RefType, R>) {
+                if constexpr(std::is_same_v<typename RefType::StatelessRefType, typename R::StatelessRefType> && !RegistryReferenceable<RefType>) {
                     equal = this->compare(this->getThread(), rhs);
                 } else {
                     const int stackIndex1 = this->makeStackIndex();
@@ -169,12 +188,56 @@ public:
         return equal;
     }
 
-    ~StatefulRefBase(void) { release(this->getThread()); }
+    // Generic inequality comparison operator
+    template<typename R>
+        requires ReadableReferenceable<R>
+    bool operator!=(const R& rhs) const {
+        return !(*this == rhs);
+    }
 
-    bool release(const ThreadViewBase* pThread) {
-        assert(pThread == this->getThread());
+    // Generic copy logic
+    template<ThreadStateful RefType2>
+    void copy(const RefType2& rhs) {
+        if constexpr(ModifiableThreadStateful<StateType>) {
+            StateType::setThread(rhs.getThread());
+        } else {
+            assert(ThreadViewBase::compare(StateType::getThread(), rhs.getThread()));
+        }
+        RefType::copy(rhs.getThread(), rhs);
+    }
+
+    // Generic move logic
+    template<ThreadStateful RefType2>
+    void move(RefType2&& rhs)
+        requires MoveCompatibleReferenceables<std::decay_t<RefType>, std::decay_t<RefType2>>
+    {
+        if constexpr(ModifiableThreadStateful<StateType>) {
+            StateType::setThread(rhs.getThread());
+        } else {
+            assert(ThreadViewBase::compare(StateType::getThread(), rhs.getThread()));
+        }
+        RefType::move(rhs.getThread(), std::forward<RefType2>(rhs));
+
+        if constexpr(ModifiableThreadStateful<RefType2>) {
+            rhs.setThread(nullptr);
+        }
+    }
+
+    // Generic move falling through to copy
+    template<ThreadStateful RefType2>
+    void move(RefType2&& rhs)
+        requires (!MoveCompatibleReferenceables<std::decay_t<RefType>, std::decay_t<RefType2>>)
+    {
+        copy(rhs);
+    }
+
+    ~StatefulRefBase(void) { release(); }
+
+    bool release(void) {
         bool retVal = RefType::release(this->getThread());
-        StateType::clear();
+        if constexpr(ModifiableThreadStateful<StateType>) {
+            StateType::setThread(nullptr);
+        }
         return retVal;
     }
 
@@ -184,18 +247,28 @@ public:
                 && RefType::isValid();
     }
 
+    //WRONG AS FUCK -- not handling threads properly!
     bool fromStackIndex(const ThreadViewBase* pThread, int index) {
-        lua_State* pState1 = this->getThread()? this->getThread()->getState() : nullptr;
-        lua_State* pState2 = pThread? pThread->getState() : nullptr;
+        const auto* pThr = this->getThread();
+        const lua_State* pState1 = pThr? pThr->getState() : nullptr;
+        const lua_State* pState2 = pThread? pThread->getState() : nullptr;
 
-        assert(!(StateType::staticState() && StackReferenceable<RefType> && pState1 != pState2));
+        assert(!(!ModifiableThreadStateful<StateType> && StackReferenceable<RefType> && pState1 != pState2));
         //Cannot store static stack references from other threads!!!
-        release(this->getThread());
-        this->setThread(pThread);
+        release();
+
+        if constexpr(ModifiableThreadStateful<StateType>) {
+            this->setThread(pThread);
+        } else {
+            assert(pState1 == pState2);
+        }
+
         return RefType::fromStackIndex(pThread, index);
     }
 
     bool push(const ThreadViewBase* pThread) const {
+        assert(pThread);
+
         bool retVal = false;
         if(!isValid()) {
             pThread->pushNil();
@@ -205,7 +278,7 @@ public:
                 retVal = RefType::push(pThread);
             } else {
                 RefType::push(this->getThread());
-                if(this->getThread() != pThread) {
+                if(!ThreadViewBase::compare(this->getThread(), pThread)) {
                     this->getThread()->xmove(pThread->getState(), 1);
                 }
                 retVal = true;
@@ -214,19 +287,24 @@ public:
         return retVal;
     }
 
-    bool pull(const ThreadViewBase* pThread) {
-        release(this->getThread());
-        this->setThread(pThread);
+    bool pull(const ThreadViewBase* pThread) requires WritableReferenceable<RefType> {
+        release();
+        if constexpr(ModifiableThreadStateful<StateType>) {
+            StateType::setThread(pThread);
+        } else {
+            assert(this->getThread() == pThread);
+        }
+
         return RefType::pull(pThread);
     }
 
+    // Required by Referenceable concepts!
     using RefType::makeStackIndex;
+    using RefType::doneWithStackIndex;
 
     int makeStackIndex(void) const {
         return RefType::makeStackIndex(this->getThread());
     }
-
-    using RefType::doneWithStackIndex;
 
     bool doneWithStackIndex(int index) const {
         return RefType::doneWithStackIndex(this->getThread(), index);
@@ -234,32 +312,6 @@ public:
 };
 
 
-
-template<typename CRTP>
-class RefStateBase: public RefStateBaseTag {
-public:
-    using RefStateBaseType = CRTP;
-};
-
-class StaticRefState {
-public:
-    static const ThreadViewBase* staticThread(void);
-    const ThreadViewBase* getThread(void) const;
-    bool setThread(const ThreadViewBase*) { return false; }
-    void clear(void) {  }
-    constexpr static bool staticState(void) { return true; }
-};
-
-class ExplicitRefState {
-public:
-    const ThreadViewBase* getThread(void) const { return m_pThread; }
-    bool setThread(const ThreadViewBase* pThreadView) { m_pThread = pThreadView; return true; }
-    void clear(void) { m_pThread = nullptr; }
-    constexpr static bool staticState(void) { return false; }
-private:
-    const ThreadViewBase* m_pThread = nullptr;
-
-};
 
 template<typename CRTP>
 class StatelessRefBase:
@@ -286,6 +338,13 @@ public:
     template<typename R>
     requires (RegistryReferenceable<std::decay_t<R>> && !(std::is_same_v<std::decay_t<R>, Variant> && std::is_same_v<CRTP, Variant>))
     auto    operator=(R&& rhs) -> CRTP& {
+        move(std::forward<R>(rhs));
+        return static_cast<CRTP&>(*this);
+    }
+
+    template<typename R>
+        requires (RegistryReferenceable<std::decay_t<R>> && !(std::is_same_v<std::decay_t<R>, Variant> && std::is_same_v<CRTP, Variant>))
+    bool move(R&& rhs) {
         using DR = std::decay_t<R>;
 
         bool assigned = false;
@@ -302,32 +361,43 @@ public:
                 rhs.push();
                 pull(rhs.getThread());
             }
-        } else if constexpr(!StatefulObject<DR>) {
+        } else if constexpr(!ThreadStateful<DR>) {
             setRegistryKey(rhs.getRegistryKey());
             if constexpr(std::is_rvalue_reference_v<decltype(rhs)>) {
                 rhs.setRegistryKey(LUA_NOREF);
             }
         }
-        return static_cast<CRTP&>(*this);
+        return true;
     }
 
-    bool copy(const ThreadViewBase* pThread, const RegistryRefBase<CRTP>& rhs) {
+    template<ReadableReferenceable R2>
+    bool copy(const ThreadViewBase* pThread, const R2& rhs) {
         bool success = false;
-        if(pThread && rhs.push(pThread)) {
-            success = pull(pThread);
-        } else {
+
+        if(pThread) {
+            const int tempIndex = rhs.makeStackIndex(pThread);
+            if(tempIndex) {
+                if(fromStackIndex(pThread, tempIndex)) {
+                    success = true;
+                }
+            }
+            rhs.doneWithStackIndex(pThread, tempIndex);
+        }
+
+        if(!success) {
             setRegistryKey(LUA_NOREF);
         }
+
         return success;
     }
 
-    bool move(const ThreadViewBase* pThread, RegistryRefBase<CRTP>&& rhs) {
+    bool move(const ThreadViewBase* pThread, CRTP&& rhs) {
         setRegistryKey(rhs.getRegistryKey());
         rhs.setRegistryKey(LUA_NOREF);
         return true;
     }
 
-    bool compare(const ThreadViewBase* pThread, const CRTP& rhs) {
+    bool compare(const ThreadViewBase* pThread, const CRTP& rhs) const {
         return getRegistryKey() == rhs.getRegistryKey();
     }
 
@@ -452,7 +522,7 @@ public:
                     rhs.push();
                     pull(rhs.getThread());
                 }
-            } else if constexpr(!StatefulObject<DR>) {
+            } else if constexpr(!ThreadStateful<DR>) {
                 setRegistryKey(rhs.getRegistryKey());
                 if constexpr(std::is_rvalue_reference_v<decltype(rhs)>) {
                     rhs.setRegistryKey(LUA_NOREF);
@@ -494,7 +564,7 @@ public:
         return copy(pThread, rhs);
     }
 
-    bool compare(const ThreadViewBase*, const CRTP& rhs) {
+    bool compare(const ThreadViewBase*, const CRTP& rhs) const {
         return getStackIndex() == rhs.getStackIndex();
     }
 
@@ -590,7 +660,7 @@ public:
         return removed;
     }
 
-    bool compare(const ThreadViewBase*, const CRTP&) { return true; }
+    bool compare(const ThreadViewBase*, const CRTP&) const { return true; }
 
     bool release(const ThreadViewBase*) { return true; }
 

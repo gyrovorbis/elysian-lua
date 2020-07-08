@@ -14,8 +14,6 @@ namespace elysian::lua {
 
 int StackMonitor::getCurrentValue(void) const { assert(getThread()); return getThread()->getTop(); }
 
-const ThreadViewBase* RegistryRefCountMonitor::getThread(void) const { return LuaVM::getMainThread(); }
-
 int64_t RegistryRefCountMonitor::getCurrentValue(void) const { return LuaVM::getRegistryRefCount(); }
 
 }

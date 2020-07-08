@@ -55,14 +55,14 @@ class StatelessRegRef;
 class StatelessStackRef;
 class StatelessGlobalsTableFixedRef;
 
-class ExplicitRefState;
-class StaticRefState;
+class ExplicitThreadStateful;
+class StaticThreadStateful;
 
-using GlobalsTablePsuedoRef = StatefulRefBase<StatelessGlobalsTableFixedRef, ExplicitRefState>;
-using RegistryRef = StatefulRefBase<StatelessRegRef, ExplicitRefState>;
-using StaticRegistryRef = StatefulRefBase<StatelessRegRef, StaticRefState>;
-using StackRef = StatefulRefBase<StatelessStackRef, ExplicitRefState>;
-using StaticStackRef = StatefulRefBase<StatelessStackRef, StaticRefState>;
+using GlobalsTablePsuedoRef = StatefulRefBase<StatelessGlobalsTableFixedRef, ExplicitThreadStateful>;
+using RegistryRef = StatefulRefBase<StatelessRegRef, ExplicitThreadStateful>;
+using StaticRegistryRef = StatefulRefBase<StatelessRegRef, StaticThreadStateful>;
+using StackRef = StatefulRefBase<StatelessStackRef, ExplicitThreadStateful>;
+using StaticStackRef = StatefulRefBase<StatelessStackRef, StaticThreadStateful>;
 
 template<typename RefType>
 class Object;

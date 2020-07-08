@@ -23,38 +23,9 @@ using VariantKVPair = std::pair<Variant, Variant>;
 
 //ifdef for storing strings Lua-side to compare performance?
 
-# if 0
-class StatelessRegRef:
-    public RegistryRefBase<StatelessRegRef>
-{
-public:
-    StatelessRegRef(void) = default;
-    StatelessRegRef(const StatelessRegRef&) = delete;
-    StatelessRegRef& operator=(const StatelessRegRef&) = delete;
-
-    using RegistryRefBase<StatelessRegRef>::operator=;
-
-    template<typename R>
-    requires RegistryReferenceable<std::decay_t<R>>
-    StatelessRegRef(R&& rhs) {
-        setRegistryKey(rhs.getRegistryKey());
-        if constexpr(std::is_rvalue_reference_v<decltype(rhs)>) {
-            rhs.setRegistryKey(LUA_NOREF);
-        }
-    }
-
-    void    setRegistryKey(int key) { m_ref = key; }
-    int     getRegistryKey(void) const { return m_ref; }
-
-private:
-    int m_ref = LUA_NOREF;
-};
-
-#endif
-
 
 class Variant :
-        public StaticRefState,
+        public StaticThreadStateful,
         public RegistryRefBase<Variant>,
         public TableAccessible<Variant>,
         public Callable<Variant>
@@ -519,7 +490,7 @@ inline LuaFieldRef LuaFieldRef::operator[](const Variant &key) const {
 #if 0
 template <typename T> inline Variant::Variant(T *const ref) {
   if (ref) {
-    getThread()->push(ref);
+    staticThread()->push(ref);
     pull();
   } else {
     _setType(LUA_TNIL);
@@ -679,8 +650,8 @@ inline bool Variant::operator==(const Variant &rhs) const {
   default:          // let Lua handle the comparison for complex types
     push();
     rhs.push();
-    const bool equality = getThread()->compare(-1, -2, LUA_OPEQ);
-    getThread()->pop(2);
+    const bool equality = staticThread()->compare(-1, -2, LUA_OPEQ);
+    staticThread()->pop(2);
     return equality;
   }
 }
@@ -691,11 +662,11 @@ inline bool Variant::operator==(const T *const ud) const {
   // metamethods
   bool equal = false;
   if (push()) {
-    if(getThread()->push(ud)) {
-      equal = getThread()->compare(-1, -2, LUA_OPEQ);
-      getThread()->pop();
+    if(staticThread()->push(ud)) {
+      equal = staticThread()->compare(-1, -2, LUA_OPEQ);
+      staticThread()->pop();
     }
-    getThread()->pop();
+    staticThread()->pop();
   }
   return equal;
 }
@@ -783,10 +754,10 @@ inline bool Variant::isCFunction(void) const {
   bool result = false;
   if (getType() == LUA_TFUNCTION) {
     if (push()) {
-      if(getThread()->isCFunction(-1)) {
+      if(staticThread()->isCFunction(-1)) {
         result = true;
       }
-      getThread()->pop(1);
+      staticThread()->pop(1);
     }
   }
   return result;
@@ -806,7 +777,7 @@ inline void Variant::_setType(const int luaType, const bool isInteger) {
   if (!isWeakRef()) { // only delete shit if we have ownership of it (are a
                       // strong reference)
     if (isRefType()) {
-      getThread()->unref(LUA_REGISTRYINDEX, _value.ref);
+      staticThread()->unref(LUA_REGISTRYINDEX, _value.ref);
     } else if (getType() == LUA_TSTRING) {
       free((void *)_value.string);
     } else if (getType() == LUA_TNIL) {
@@ -826,13 +797,13 @@ inline void Variant::setNil(void) {
 }
 
 template <typename T> inline void Variant::setValue(T *const ud) {
-    getThread()->push(ud);
+    staticThread()->push(ud);
   pull();
 }
 
 inline void
 Variant::setValue(const std::initializer_list<VariantKVPair> &pairs) {
-    getThread()->push(pairs);
+    staticThread()->push(pairs);
   pull();
 }
 
@@ -883,14 +854,14 @@ inline void Variant::setValue(void *const ptr) {
 }
 
 inline void Variant::setValue(const lua_CFunction funcPtr) {
-  getThread()->push(funcPtr);
+  staticThread()->push(funcPtr);
   pull();
 }
 
 template <typename T> inline T Variant::getValue(void) const {
   T ud = nullptr;
   push();
-  getThread()->pull(ud);
+  staticThread()->pull(ud);
   return ud;
 }
 
@@ -918,69 +889,69 @@ template <> inline void *Variant::getValue<void *>(void) const {
 inline bool Variant::push(void) const {
     switch (getType()) {
     case LUA_TNIL:
-      getThread()->pushNil();
+      staticThread()->pushNil();
       break;
     case LUA_TBOOLEAN:
-      getThread()->push(getValue<bool>());
+      staticThread()->push(getValue<bool>());
       break;
     case LUA_TNUMBER:
       if (isInteger())
-        getThread()->push(getValue<lua_Integer>());
+        staticThread()->push(getValue<lua_Integer>());
       else
-        getThread()->push(getValue<lua_Number>());
+        staticThread()->push(getValue<lua_Number>());
       break;
     case LUA_TSTRING:
-      getThread()->push(getValue<const char *>());
+      staticThread()->push(getValue<const char *>());
       break;
     case LUA_TLIGHTUSERDATA:
-      getThread()->push(getValue<void *>());
+      staticThread()->push(getValue<void *>());
       break;
     case LUA_TTABLE:
     case LUA_TUSERDATA:
     case LUA_TFUNCTION:
     case LUA_TTHREAD:
-      getThread()->getTableRaw(LUA_REGISTRYINDEX, getRef());
+      staticThread()->getTableRaw(LUA_REGISTRYINDEX, getRef());
       break;
     }
     return true;
 }
 
 inline bool Variant::pull(void) {
-  if (!getThread()->getTop()) {
+  if (!staticThread()->getTop()) {
     setNil();
     return false;
   }
 
-  const int type = getThread()->getType(-1);
+  const int type = staticThread()->getType(-1);
 
   switch (type) {
   case LUA_TNIL:
     setNil();
     break;
   case LUA_TBOOLEAN:
-    setValue(getThread()->toValue<bool>(-1));
+    setValue(staticThread()->toValue<bool>(-1));
     break;
   case LUA_TNUMBER:
-    if (getThread()->isInteger(-1))
-        setValue(getThread()->toValue<lua_Integer>(-1));
+    if (staticThread()->isInteger(-1))
+        setValue(staticThread()->toValue<lua_Integer>(-1));
     else
-        setValue(getThread()->toValue<lua_Number>(-1));
+        setValue(staticThread()->toValue<lua_Number>(-1));
     break;
   case LUA_TSTRING:
-    setValue(getThread()->toValue<const char*>(-1));
+    setValue(staticThread()->toValue<const char*>(-1));
     break;
   case LUA_TLIGHTUSERDATA:
-    setValue(getThread()->toValue<void*>(-1));
+    setValue(staticThread()->toValue<void*>(-1));
     break;
   case LUA_TTABLE:
   case LUA_TUSERDATA:
   case LUA_TFUNCTION:
   case LUA_TTHREAD:
-    _setRefDirect(getThread()->ref(LUA_REGISTRYINDEX));
+    _setRefDirect(staticThread()->ref(LUA_REGISTRYINDEX));
     return true;
   }
 
-  getThread()->pop();
+  staticThread()->pop();
   return true;
 }
 
@@ -993,17 +964,17 @@ inline const char *Variant::getTypeString(void) const {
   if (luaType == LUA_TNUMBER) {
     return isInteger() ? "integer" : "number";
   } else if (luaType != LUA_TUSERDATA && luaType != LUA_TLIGHTUSERDATA) {
-    return getThread()->getTypeName(luaType);
+    return staticThread()->getTypeName(luaType);
   } else {
-    getThread()->getTableRaw(LUA_REGISTRYINDEX, _value.ref);
-    getThread()->getTable(-1, ELYSIAN_LUA_PROXY_TYPE_METAFIELD);
-    if (!getThread()->isNil(-1)) {
-      const char *name = getThread()->toString(-1);
-      getThread()->pop(2);
+    staticThread()->getTableRaw(LUA_REGISTRYINDEX, _value.ref);
+    staticThread()->getTable(-1, ELYSIAN_LUA_PROXY_TYPE_METAFIELD);
+    if (!staticThread()->isNil(-1)) {
+      const char *name = staticThread()->toString(-1);
+      staticThread()->pop(2);
       return name;
     } else {
-      getThread()->pop(2);
-      return lua_typename(getThread()->getState(), luaType);
+      staticThread()->pop(2);
+      return lua_typename(staticThread()->getState(), luaType);
     }
   }
 }
@@ -1013,9 +984,9 @@ inline int Variant::getRef(void) const {
 }
 
 inline void Variant::setRef(const int ref) {
-  getThread()->getTableRaw(LUA_REGISTRYINDEX, ref);
-  _setType(getThread()->getType(-1));
-  _value.ref = getThread()->ref(LUA_REGISTRYINDEX);
+  staticThread()->getTableRaw(LUA_REGISTRYINDEX, ref);
+  _setType(staticThread()->getType(-1));
+  _value.ref = staticThread()->ref(LUA_REGISTRYINDEX);
 }
 
 template <typename L>
@@ -1065,7 +1036,7 @@ Variant::_convertToBool(const Variant &source,
     dest = _lightConvertToBool(source);
     break;
   default:
-    dest = source._convertType([&](void) { source.getThread()->toBoolean(-1); });
+    dest = source._convertType([&](void) { source.staticThread()->toBoolean(-1); });
   }
   return dest;
 }
@@ -1105,8 +1076,8 @@ Variant::_convertToNumber(const Variant &source,
   default:
     dest = source
                ._convertType([&](void) {
-                 source.getThread()->push(source.getThread()->toValue<NumberType>(-1));
-                 source.getThread()->remove(-2);
+                 source.staticThread()->push(source.staticThread()->toValue<NumberType>(-1));
+                 source.staticThread()->remove(-2);
                })
                .template getValue<NumberType>();
   }
@@ -1131,8 +1102,8 @@ inline Variant Variant::asInteger(void) const {
 
 inline Variant Variant::asString(void) const {
   return (getType() == LUA_TSTRING) ? *this : _convertType([&](void) {
-    getThread()->convertToString(-1, nullptr);
-    getThread()->remove(-2);
+    staticThread()->convertToString(-1, nullptr);
+    staticThread()->remove(-2);
   });
 }
 
@@ -1150,8 +1121,8 @@ inline Variant Variant::asUserdata(void) const {
 inline int Variant::getLength(void) const {
   int len = 0;
   if (push()) {
-    len = getThread()->length(-1);
-    getThread()->pop();
+    len = staticThread()->length(-1);
+    staticThread()->pop();
   }
   return len;
 }
@@ -1159,8 +1130,8 @@ inline int Variant::getLength(void) const {
 inline const void *Variant::getPointer(void) const {
   const void *ptr = nullptr;
   if (push()) {
-    ptr = getThread()->toValue<const void*>(-1);
-    getThread()->pop();
+    ptr = staticThread()->toValue<const void*>(-1);
+    staticThread()->pop();
   }
   return ptr;
 }
@@ -1278,9 +1249,9 @@ inline LuaFieldRef Variant::operator[](const Variant &key) const {
 
 // Assumes ownership of reference rather than duplicating!
 inline void Variant::_setRefDirect(const int luaRef) {
-  getThread()->getTableRaw(LUA_REGISTRYINDEX, luaRef);
-  _setType(getThread()->getType(-1));
-  getThread()->pop(1);
+  staticThread()->getTableRaw(LUA_REGISTRYINDEX, luaRef);
+  _setType(staticThread()->getType(-1));
+  staticThread()->pop(1);
   _value.ref = luaRef;
 }
 
@@ -1371,7 +1342,7 @@ const_noconst_iterator<is_const_iterator>::operator++(void) {
 template <typename Ret, typename... Args>
 inline void
 Variant::setValue(const std::function<Ret(Args...)> &closure) {
-  //getThread()->push(closure);
+  //staticThread()->push(closure);
   pull();
 }
 
@@ -1383,10 +1354,10 @@ template <typename T> inline void Variant::setValue(const T lambda) {
 
 inline int Variant::makeStackIndex(void) const {
     push();
-    return getThread()->toAbsStackIndex(-1);
+    return staticThread()->toAbsStackIndex(-1);
 }
 inline void Variant::doneWithStackIndex(int index) const {
-    getThread()->remove(index);
+    staticThread()->remove(index);
 }
 inline bool Variant::isValid(void) const { return isIndexable(); }
 

@@ -40,7 +40,8 @@ set(ELYSIAN_LUA_SOURCES
     source/elysian_lua_reference.cpp
     source/elysian_lua_buffer.cpp
     source/elysian_lua_protected_block.cpp
-    source/elysian_lua_stack_monitor.cpp)
+    source/elysian_lua_stack_monitor.cpp
+    source/elysian_lua_thread_state.cpp)
 
 set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_forward_declarations.hpp
@@ -53,6 +54,7 @@ set(ELYSIAN_LUA_INCLUDES
     api/ElysianLua/elysian_lua_table.hpp
     api/ElysianLua/elysian_lua_callable.hpp
     api/ElysianLua/elysian_lua_function.hpp
+    api/ElysianLua/elysian_lua_thread_state.hpp
     api/ElysianLua/elysian_lua_reference_base.hpp
     api/ElysianLua/elysian_lua_reference.hpp
     api/ElysianLua/elysian_lua_proxy.hpp

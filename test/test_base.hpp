@@ -84,7 +84,7 @@ inline void TestSetBase::initTestCase(void) {
 
     QVERIFY(m_pThreadView->isValid());
     QVERIFY(m_pThreadView->getState() == LuaVM::getMainThread()->getState());
-    QVERIFY(*m_pThreadView == m_pThreadView->getState());
+    QVERIFY(static_cast<lua_State*>(*m_pThreadView) == m_pThreadView->getState());
     QVERIFY(m_pThreadView->getTop() == 0); // starting off with a clean stack
     m_pStackGuard = new StackGuard<false>(m_pThreadView);
     m_pStackGuard->begin();

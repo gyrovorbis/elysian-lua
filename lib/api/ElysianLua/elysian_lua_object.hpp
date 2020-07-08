@@ -57,7 +57,7 @@ namespace stack_impl {
 template<typename O>
 struct object_stack_getter {
     static O get(const ThreadViewBase* pBase, StackRecord& record, int index) {
-        O object(pBase);
+        O object;
         object.fromStackIndex(pBase, index);
         return object;
     }

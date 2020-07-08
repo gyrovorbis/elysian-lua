@@ -136,6 +136,10 @@ public:
     int getFunctionCallDepth(void) const;
 
     operator lua_State *(void)const;
+    bool operator==(const ThreadViewBase& rhs) const;
+    bool operator!=(const ThreadViewBase& rhs) const;
+
+    static bool compare(const ThreadViewBase* lhs, const ThreadViewBase* rhs);
 
     int push(void) const; // doesn't do shit
     int push(std::nullptr_t) const;
@@ -537,6 +541,16 @@ namespace internal {
     };
 }
 
+inline bool ThreadViewBase::compare(const ThreadViewBase* lhs, const ThreadViewBase* rhs) {
+    if(lhs == rhs) {
+        return true;
+    } else if(lhs && rhs) {
+        return *lhs == *rhs;
+    } else {
+        return false;
+    }
+}
+
 template<typename T>
 constexpr inline int ThreadViewBase::getType(void) { return LUA_TNONE; }
 template<> constexpr inline int ThreadViewBase::getType<void>(void) { return LUA_TNONE; }
@@ -581,6 +595,9 @@ inline int ThreadViewBase::numberToInteger(lua_Number n, lua_Integer* p) {
 }
 
 inline ThreadViewBase::operator lua_State *(void)const { return m_pState; }
+
+inline bool ThreadViewBase::operator==(const ThreadViewBase& rhs) const { return getState() == rhs.getState(); }
+inline bool ThreadViewBase::operator!=(const ThreadViewBase& rhs) const { return !(*this == rhs); }
 
 inline ThreadViewBase::ThreadViewBase(lua_State* pState): m_pState(pState) {}
 

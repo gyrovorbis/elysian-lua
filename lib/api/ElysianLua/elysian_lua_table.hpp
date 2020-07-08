@@ -40,8 +40,11 @@ auto operator<<(TableBase<RefType, Globals>& lhs, RType&& rhs) { return Operator
 template<typename RefType, bool Globals, typename RType>
 auto operator>>(TableBase<RefType, Globals>& lhs, RType&& rhs) { return OperatorProxy(lhs, rhs, OperatorType::Shr); }
 
+struct TableBaseTag {};
+
 template<typename RefType, bool GlobalsTable>
 class TableBase:
+        TableBaseTag,
         public RefType,
         public TableAccessible<TableBase<RefType, GlobalsTable>>
         //public Callable<TableBase<RefType, GlobalsTable>>
@@ -50,7 +53,11 @@ public:
 
     using ReferenceType = RefType;
 
-    TableBase(const ThreadViewBase* pThread=nullptr);
+    static_assert(ReadableReferenceable<RefType>, "RefType must meet all of the constraints required by the ReadableReferenceable concept!");
+    static_assert(ThreadStateful<RefType>, "RefType must meet all of the constraints required by the ThreadStateful concept!");
+
+    TableBase(void) = default;
+    TableBase(const ThreadViewBase* pThread) requires ModifiableThreadStateful<RefType>;
     // ~TableBase(void); This has to explicitly call m_ref.destroy(getThread()) if not using a stateful reference!!!
 
     template<typename RefType2, bool GlobalsTable2>
@@ -71,57 +78,61 @@ public:
     template<typename RefType2, bool GlobalsTable2>
     bool operator==(const TableBase<RefType2, GlobalsTable2>& rhs) const;
 
+#if 0
     template<typename T, typename K>
     bool operator==(const TableProxy<T, K>& rhs) const;
+#endif
 
     bool operator==(std::nullptr_t) const;
 
     template<typename RefType2, bool GlobalsTable2>
     bool operator!=(const TableBase<RefType2, GlobalsTable2>& rhs) const;
-
+#if 0
     template<typename T, typename K>
     bool operator!=(const TableProxy<T, K>& rhs) const;
+#endif
 
     bool operator==(bool) const = delete;
     bool operator!=(std::nullptr_t) const;
-
-    //TableBase<RefType, GlobalsTable>& operator=(const TableBase<RefType, GlobalsTable>& rhs) const = delete;
-
-    template<typename RefType2, bool GlobalsTable2>
-    const TableBase<RefType, GlobalsTable>& operator=(const TableBase<RefType2, GlobalsTable2>& rhs);
-
-    template<typename RefType2, bool GlobalsTable2>
-    const TableBase<RefType, GlobalsTable>& operator=(TableBase<RefType2, GlobalsTable2>&& rhs);
-
+#if 0
     template<typename T, typename Key>
     const TableBase<RefType, GlobalsTable>& operator=(const TableProxy<T, Key>& proxy);
+#endif
 
     const TableBase<RefType, GlobalsTable>& operator=(std::nullptr_t);
+
+    template<typename Ref2>
+    TableBase<RefType, GlobalsTable>& operator=(Ref2&& rhs);
 
     bool isValid(void) const;
 };
 
-
+template<typename RefType, bool GlobalsTable>
+template<typename Ref2>
+inline TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(Ref2&& rhs) {
+    static_cast<RefType&>(*this) = std::forward<Ref2>(rhs);
+    return *this;
+}
 
 
 template<typename RefType, bool GlobalsTable>
-inline TableBase<RefType, GlobalsTable>::TableBase(const ThreadViewBase* pThread):
-    RefType(pThread) {}
+inline TableBase<RefType, GlobalsTable>::TableBase(const ThreadViewBase* pThread)
+requires ModifiableThreadStateful<RefType>:
+    RefType(pThread)
+{}
 
 template<typename RefType, bool GlobalsTable>
 template<typename RefType2, bool GlobalsTable2>
 inline TableBase<RefType, GlobalsTable>::TableBase(const TableBase<RefType2, GlobalsTable2>& other):
-    RefType(other.getThread())
+    RefType(static_cast<const RefType2&>(other))
 {
-    *this = other;
 }
 
 template<typename RefType, bool GlobalsTable>
 template<typename RefType2, bool GlobalsTable2>
 inline TableBase<RefType, GlobalsTable>::TableBase(TableBase<RefType2, GlobalsTable2>&& other):
-    RefType(other.getThread())
+    RefType(static_cast<RefType2&&>(other))
 {
-    *this = std::move(other);
 }
 
 template<typename RefType, bool GlobalsTable>
@@ -162,6 +173,7 @@ inline bool TableBase<RefType, GlobalsTable>::operator==(const TableBase<RefType
     return (static_cast<const RefType&>(*this) == static_cast<const RefType2&>(rhs));
 }
 
+#if 0
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename K>
 inline bool TableBase<RefType, GlobalsTable>::operator==(const TableProxy<T, K>& rhs) const {
@@ -178,6 +190,7 @@ inline bool TableBase<RefType, GlobalsTable>::operator==(const TableProxy<T, K>&
     }
     return equal;
 }
+#endif
 
 template<typename RefType, bool GlobalsTable>
 inline bool TableBase<RefType, GlobalsTable>::operator==(std::nullptr_t) const {
@@ -190,70 +203,26 @@ inline bool TableBase<RefType, GlobalsTable>::operator!=(const TableBase<RefType
     return !(*this == rhs);
 }
 
+#if 0
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename K>
 inline bool TableBase<RefType, GlobalsTable>::operator!=(const TableProxy<T, K>& rhs) const {
     return !(*this == rhs);
 }
+#endif
 
 template<typename RefType, bool GlobalsTable>
 inline bool TableBase<RefType, GlobalsTable>::operator!=(std::nullptr_t) const {
     return isValid();
 }
 
-
-template<typename RefType, bool GlobalsTable>
-template<typename RefType2, bool GlobalsTable2>
-inline const TableBase<RefType, GlobalsTable>&
-TableBase<RefType, GlobalsTable>::operator=(const TableBase<RefType2, GlobalsTable2>& rhs) {
-    static_assert(!GlobalsTable || GlobalsTable2, "Cannot assign a non-globals table to a globals table!");
-    static_assert(!(StackReferenceable<RefType> && !StackReferenceable<RefType2>), "Cannot assign a stack reference to non-stack object!");
-
-    if(rhs.isValid()) {
-        //Let the reference decide how to handle it
-        if constexpr(std::is_same_v<RefType, RefType2>) {
-            static_cast<RefType&>(this) = static_cast<const RefType2&>(rhs);
-        } else if constexpr(StackReferenceable<RefType> && StackReferenceable<RefType2>) {
-            this->fromStackIndex(rhs.getThread(), rhs.getStackIndex());
-        } else { // Manually copy via stack
-            this->getThread()->push(rhs);
-            this->pull(this->getThread());
-        }
-    } else {
-        this->release(this->getThread());
-    }
-    return *this;
-}
-
-template<typename RefType, bool GlobalsTable>
-template<typename RefType2, bool GlobalsTable2>
-inline const TableBase<RefType, GlobalsTable>&
-TableBase<RefType, GlobalsTable>::operator=(TableBase<RefType2, GlobalsTable2>&& rhs) {
-    static_assert(!GlobalsTable || GlobalsTable2, "Cannot assign a non-globals table to a globals table!");
-    static_assert(!(StackReferenceable<RefType> && !StackReferenceable<RefType2>), "Cannot assign a stack reference to non-stack object!");
-
-    if(rhs.isValid()) {
-        //Let the reference decide how to handle it
-        if constexpr(std::is_same_v<RefType, RefType2>) {
-            this->getRef() = std::move(rhs.getRef());
-        } else if constexpr(StackReferenceable<RefType> && StackReferenceable<RefType2>) {
-            this->fromStackIndex(rhs.getThread(), rhs.getStackIndex());
-        } else { // Manually copy via stack
-            this->getThread()->push(rhs);
-            this->pull(this->getThread());
-        }
-    } else {
-        this->release(this->getThread());
-    }
-    return *this;
-}
-
 template<typename RefType, bool GlobalsTable>
 const TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(std::nullptr_t) {
-    this->release(this->getThread());
+    this->release();
     return *this;
 }
 
+#if 0
 template<typename RefType, bool GlobalsTable>
 template<typename T, typename Key>
 inline const TableBase<RefType, GlobalsTable>&
@@ -265,74 +234,23 @@ TableBase<RefType, GlobalsTable>::operator=(const TableProxy<T, Key>& proxy) {
             this->pull(proxy.getThread());
         }
     } else {
-        this->release(this->getThread());
+        this->release();
     }
     return *this;
 }
+#endif
 
 namespace stack_impl {
 
-struct table_stack_checker {
+template<typename RefType, bool GlobalsTable>
+    requires (!GlobalsTable)
+struct stack_checker<TableBase<RefType, GlobalsTable>> {
     static bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
         return pBase->isTable(index);
     }
 };
 
-template<>
-struct stack_checker<Table>:
-        public table_stack_checker {};
-
-template<>
-struct stack_getter<Table>:
-        public object_stack_getter<Table> {};
-
-template<>
-struct stack_pusher<Table>:
-        public object_stack_pusher<Table> {};
-
-template<>
-struct stack_checker<StaticTable>:
-        public table_stack_checker {};
-
-template<>
-struct stack_getter<StaticTable>:
-        public object_stack_getter<StaticTable> {};
-
-template<>
-struct stack_pusher<StaticTable>:
-        public object_stack_pusher<StaticTable> {};
-
-template<>
-struct stack_checker<StackTable>:
-        public table_stack_checker {};
-
-template<>
-struct stack_getter<StackTable>:
-        public object_stack_getter<StackTable> {};
-
-template<>
-struct stack_pusher<StackTable>:
-        public object_stack_pusher<StackTable> {};
-
-
-template<>
-struct stack_checker<StaticStackTable>:
-        public table_stack_checker {};
-
-template<>
-struct stack_getter<StaticStackTable>:
-        public object_stack_getter<StackTable> {};
-
-template<>
-struct stack_pusher<StaticStackTable>:
-        public object_stack_pusher<StackTable> {};
-
-template<>
-struct stack_pusher<GlobalsTable>:
-        public object_stack_pusher<GlobalsTable> {};
-
 }
-
 
 
 }

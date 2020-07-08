@@ -6,6 +6,7 @@
 #include "elysian_lua_forward_declarations.hpp"
 #include "elysian_lua_traits.hpp"
 #include "elysian_lua_stack_frame.hpp"
+#include "elysian_lua_thread_state.hpp"
 
 namespace elysian::lua {
 
@@ -75,12 +76,12 @@ public:
 };
 
 class RegistryRefCountMonitor:
-        public Monitor<RegistryRefCountMonitor, int64_t>
+        public Monitor<RegistryRefCountMonitor, int64_t>,
+        public StaticThreadStateful
 {
 public:
     RegistryRefCountMonitor(void);
     int64_t getCurrentValue(void) const;
-    const ThreadViewBase* getThread(void) const;
 };
 
 

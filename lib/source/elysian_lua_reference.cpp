@@ -9,8 +9,6 @@ extern "C" {
 
 namespace elysian::lua {
 
-const ThreadViewBase* StaticRefState::getThread(void) const { return staticThread(); }
-const ThreadViewBase* StaticRefState::staticThread(void) { return LuaVM::getMainThread(); }
 
 
 }

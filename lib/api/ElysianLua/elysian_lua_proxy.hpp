@@ -1,7 +1,7 @@
 #ifndef ELYSIAN_LUA_PROXY_HPP
 #define ELYSIAN_LUA_PROXY_HPP
 
-#include "elysian_lua_forward_declarations.hpp"
+#include "elysian_lua_reference.hpp"
 
 
 namespace elysian::lua {
@@ -9,19 +9,52 @@ namespace elysian::lua {
 class ThreadViewBase;
 
 template<typename CRTP>
-class Proxy {
+class Proxy: public StatelessRefBase<CRTP> {
 public:
 
+    //provides
     template<typename T>
-    operator T() const;
+#if 0
 
-    int push(void) const;
-    bool isValid(void) const;
+    requires requires(const CRTP b) {
+        { b.template get<T>() } -> std::same_as<T>;
+    }
+#endif
 
-   // template<typename T>
-   // operator T&() const;
+    operator T() const {
+        return static_cast<const CRTP*>(this)->template get<T>();
+    }
 
-    ThreadViewBase* getThread(void) const;
+    // Explicitly override the boolean conversion operator we inherited from StatelessRefBase to
+    // abide by Proxy conversion semantics.
+    explicit operator bool(void) const { return static_cast<const CRTP*>(this)->template get<bool>(); }
+
+    template<typename T = CRTP>
+    requires requires (T b, const ThreadViewBase* pThread) {
+        { b.push(pThread) } -> std::same_as<bool>;
+    }
+    bool push(const ThreadViewBase* pThread) const
+    {
+        return static_cast<const CRTP*>(this)->push(pThread);
+    }
+
+    int makeStackIndex(const ThreadViewBase* pThread) const {
+        assert(pThread);
+        int index = 0;
+        if(push(pThread)) {
+            index = pThread->toAbsStackIndex(-1);
+        }
+        return index;
+    }
+
+    bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const {
+        if(index) {
+            pThread->remove(index);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
 };
 
@@ -37,17 +70,6 @@ private:
 
 };
 
-
-template<typename CRTP>
-inline int Proxy<CRTP>::push(void) const {
-    return static_cast<CRTP*>(this)->push(getThread());
-}
-
-template<typename CRTP>
-template<typename T>
-inline Proxy<CRTP>::operator T() const {
-    return static_cast<const CRTP*>(this)->template get<T>();
-}
 /*
 template<typename CRTP>
 template<typename T>
@@ -56,15 +78,6 @@ inline Proxy<CRTP>::operator T&() const {
     //return static_cast<const CRTP*>(this)->get<T&>();
 }*/
 
-template<typename CRTP>
-inline ThreadViewBase* Proxy<CRTP>::getThread(void) const {
-    return static_cast<const CRTP*>(this)->getThread();
-}
-
-template<typename CRTP>
-inline bool Proxy<CRTP>::isValid(void) const {
-    return static_cast<const CRTP*>(this)->isValid();
-}
 
 
 namespace stack_impl {
@@ -81,3 +94,6 @@ struct proxy_stack_pusher {
 }
 
 #endif // ELYSIAN_LUA_PROXY_HPP
+
+
+

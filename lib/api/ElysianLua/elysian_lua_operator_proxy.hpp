@@ -38,8 +38,8 @@ public:
 
     bool isValid(void) const;
 
-    LType& getLeftOperand(void) const;
-    RType& getRightOperand(void) const;
+    const LType& getLeftOperand(void) const;
+    const RType& getRightOperand(void) const;
     OperatorType getOperator(void) const;
 
     const ThreadViewBase* getThread(void) const;
@@ -54,8 +54,8 @@ private:
     bool isRightOperandValid(void) const;
 
 
-    LType& m_lOperand;
-    RType& m_rOperand;
+    LType m_lOperand;
+    RType m_rOperand;
 
     OperatorType m_operator = OperatorType::Invalid;
 };
@@ -93,10 +93,10 @@ template<typename LType, typename RType>
 inline const ThreadViewBase* OperatorProxy<LType, RType>::getThread(void) const { return getLeftOperand().getThread(); }
 
 template<typename LType, typename RType>
-inline LType& OperatorProxy<LType, RType>::getLeftOperand(void) const { return m_lOperand; }
+inline const LType& OperatorProxy<LType, RType>::getLeftOperand(void) const { return m_lOperand; }
 
 template<typename LType, typename RType>
-inline RType& OperatorProxy<LType, RType>::getRightOperand(void) const { return m_rOperand; }
+inline const RType& OperatorProxy<LType, RType>::getRightOperand(void) const { return m_rOperand; }
 
 template<typename LType, typename RType>
 inline OperatorType OperatorProxy<LType, RType>::getOperator(void) const { return m_operator; }

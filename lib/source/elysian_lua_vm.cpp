@@ -86,7 +86,7 @@ bool LuaVM::initialize(lua_State *pState) {
 
 bool LuaVM::uninitialize(void) {
   bool success = true;
-  m_globalMessageHandler.getRef().release(m_globalMessageHandler.getThread());
+  m_globalMessageHandler.release();
   success &= _destroyMainThread();
   return success;
 }

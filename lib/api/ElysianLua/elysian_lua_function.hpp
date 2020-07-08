@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "elysian_lua_object.hpp"
+#include "elysian_lua_reference.hpp"
 #include "elysian_lua_function_result.hpp"
 #include "elysian_lua_callable.hpp"
 
@@ -12,11 +12,12 @@ namespace elysian::lua {
 //template whether protected or not when invoking () overload?
 template<typename Ref>
 class FunctionBase:
-        public Object<Ref>,
+        public Ref,
         public Callable<FunctionBase<Ref>,
                         ProtectedFunctionCaller<StaticMessageHandlerState>> {
 public:
-    FunctionBase(const ThreadViewBase* pThread=nullptr);
+    FunctionBase(void) = default;
+    FunctionBase(const ThreadViewBase* pThread) requires WritableReferenceable<Ref>;
 
     //template<typename T, typename Key>
     //FunctionBase(const TableProxy<T, Key>& proxy);
@@ -34,15 +35,17 @@ public:
     // =============================
 
     operator bool(void) const;
-
     //template<typename T, typename Key>
     //const FunctionBase<Ref>& operator=(const TableProxy<T, Key>& proxy);
 
     template<typename Ref2>
-    const FunctionBase<Ref>& operator=(const FunctionBase<Ref2>& rhs);
+    FunctionBase<Ref>& operator=(Ref2&& rhs);
 
-    template<typename Ref2>
-    const FunctionBase<Ref>& operator=(FunctionBase<Ref2>&& rhs);
+    //template<typename Ref2>
+    //const FunctionBase<Ref>& operator=(const FunctionBase<Ref2>& rhs);
+
+    //template<typename Ref2>
+    //const FunctionBase<Ref>& operator=(FunctionBase<Ref2>&& rhs);
 
     const FunctionBase<Ref>& operator=(std::nullptr_t);
 
@@ -68,8 +71,9 @@ protected:
 
 
 template<typename Ref>
-inline FunctionBase<Ref>::FunctionBase(const ThreadViewBase* pThread):
-    Object<Ref>(pThread)
+inline FunctionBase<Ref>::FunctionBase(const ThreadViewBase* pThread)
+requires WritableReferenceable<Ref>:
+    Ref(pThread)
 {}
 /*
 template<typename Ref>
@@ -98,12 +102,13 @@ inline FunctionBase<Ref>::FunctionBase(FunctionBase<Ref2>&& rhs):
 
 template<typename Ref>
 inline bool FunctionBase<Ref>::isValid(void) const {
-    return this->getThread() && this->m_ref.isValid();
+    return Ref::isValid();
+ //       getType() == LUA_TFUNCTION;
 }
 
 template<typename Ref>
 inline bool FunctionBase<Ref>::pushFunction(void) const {
-    return this->getThread()->push(this->m_ref);
+    return this->getThread()->push(*this);
 }
 
 template<typename Ref>
@@ -120,6 +125,14 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(const TableProxy<T,
     return *this;
 }*/
 
+template<typename Ref>
+template<typename Ref2>
+inline FunctionBase<Ref>& FunctionBase<Ref>::operator=(Ref2&& rhs) {
+    static_cast<Ref&>(*this) = std::forward<Ref2>(rhs);
+    return *this;
+}
+
+#if 0
 template<typename Ref>
 template<typename Ref2>
 inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(const FunctionBase<Ref2>& rhs) {
@@ -159,6 +172,7 @@ inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(FunctionBase<Ref2>&
     }
     return *this;
 }
+#endif
 
 template<typename Ref>
 inline const FunctionBase<Ref>& FunctionBase<Ref>::operator=(std::nullptr_t) {
@@ -227,41 +241,14 @@ inline FunctionBase<Ref>::operator std::function<R(Args...)>() const {
 
 namespace stack_impl {
 
-struct function_stack_checker {
+template<typename Ref>
+struct stack_checker<FunctionBase<Ref>> {
     static bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
         return pBase->isFunction(index);
     }
 };
 
-template<>
-struct stack_checker<Function>:
-        public function_stack_checker {};
-
-template<>
-struct stack_getter<Function>:
-        public object_stack_getter<Function> {};
-
-template<>
-struct stack_pusher<Function>:
-        public object_stack_pusher<Function> {};
-
-template<>
-struct stack_checker<StackFunction>:
-        public function_stack_checker {};
-
-template<>
-struct stack_getter<StackFunction>:
-        public object_stack_getter<StackFunction> {};
-
-template<>
-struct stack_pusher<StackFunction>:
-        public object_stack_pusher<StackFunction> {};
-
-
-
 }
-
-
 
 }
 
