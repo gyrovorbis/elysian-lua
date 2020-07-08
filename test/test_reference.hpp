@@ -75,6 +75,7 @@ protected:
             return thread().pull(ref);
         }
     }
+
 };
 
 template<BasicReferenceable R>
@@ -95,6 +96,21 @@ protected:
     template<typename From>
     R toRef(From&& src) const {
         return StatelessReferenceTestSet::toRef<R, From>(std::forward<From>(src));
+    }
+
+    bool softPop(int depth=1) const {
+        if constexpr(StackReferenceable<R>) {
+            thread().pop(depth);
+        }
+        return true;
+    }
+
+    template<Monitorable M>
+    void softDeltaCheck(const M& monitor, int expected) {
+        if constexpr(RegistryReferenceable<R>) {
+            const auto delta = monitor.getCurrentDelta();
+            QTRY_COMPARE(monitor.getCurrentDelta(), expected);
+        }
     }
 };
 
@@ -194,7 +210,7 @@ inline void StatelessReferenceTestSet<R>::push() {
     R ref;
 
     QVERIFY(thread().push(ref));
-    QVERIFY(thread().isNil(-1));
+    QVERIFY(FixedReferenceable<R> || thread().isNil(-1));
     thread().pop();
     QVERIFY(refGuard.isCurrentlyBalanced());
 
@@ -205,13 +221,15 @@ inline void StatelessReferenceTestSet<R>::push() {
         thread().pushNewTable();
         thread().pushValue(-1);
         QVERIFY(softPull(ref));
-        QVERIFY(refGuard.getCurrentDelta() == 1);
+        softDeltaCheck(refGuard, 1);
         QVERIFY(thread().push(ref));
     }
 
     QVERIFY(thread().isTable(-1));
     QVERIFY(thread().compare());
-    thread().pop(2);
+    thread().pop();
+    softPop();
+    thread().pop();
     QVERIFY(ref.release(&thread()));
 }
 
@@ -231,7 +249,7 @@ inline void StatelessReferenceTestSet<R>::copyConstruct() {
         QVERIFY(softPull(ref2));
         QVERIFY(ref2);
         QVERIFY(ref2.isValid());
-        QVERIFY(refGuard.getCurrentDelta() == 1);
+        softDeltaCheck(refGuard, 1);
     }
 
     R ref3 = ref2;
@@ -243,6 +261,7 @@ inline void StatelessReferenceTestSet<R>::copyConstruct() {
     QVERIFY(thread().isTable(-1));
     QVERIFY(thread().compare());
     thread().pop(2);
+    softPop();
     QVERIFY(ref3.release(&thread()));
 }
 
@@ -255,6 +274,7 @@ inline void StatelessReferenceTestSet<R>::copyAssign() {
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().push(reinterpret_cast<void*>(this)));
         QVERIFY(softPull(ref1));
+        softDeltaCheck(refGuard, 1);
     }
 
     ref2 = ref1;
@@ -269,8 +289,9 @@ inline void StatelessReferenceTestSet<R>::copyAssign() {
         QVERIFY(thread().template toValue<void*>(-1) == reinterpret_cast<void*>(this));
     }
 
+    QVERIFY(ref1.release(&thread()));
     thread().pop(2);
-    QVERIFY(ref2.release(&thread()));
+    softPop();
 }
 
 template<BasicReferenceable R>
@@ -288,7 +309,7 @@ inline void StatelessReferenceTestSet<R>::moveConstruct() {
         QVERIFY(softPull(ref2));
         QVERIFY(ref2);
         QVERIFY(ref2.isValid());
-        QVERIFY(refGuard.getCurrentDelta() == 1);
+        softDeltaCheck(refGuard, 1);
     }
 
     QVERIFY(thread().push(ref2));
@@ -298,17 +319,17 @@ inline void StatelessReferenceTestSet<R>::moveConstruct() {
     QVERIFY(ref3.isValid());
     QVERIFY(thread().push(ref3));
 
-    QVERIFY(static_cast<bool>(ref2) == R().isValid());
+    if constexpr(RegistryReferenceable<R>) QVERIFY(static_cast<bool>(ref2) == R().isValid());
 
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().isString(-1));
         QVERIFY(QString(thread().template toValue<const char*>(-1)) == "Fucker");
-        QVERIFY(refGuard.getCurrentDelta() == 1);
-    } else {
-
+        softDeltaCheck(refGuard, 1);
     }
+
     QVERIFY(thread().compare());
     thread().pop(2);
+    softPop();
     QVERIFY(ref3.release(&thread()));
 }
 
@@ -326,7 +347,7 @@ inline void StatelessReferenceTestSet<R>::moveAssign() {
 
     ref2 = std::move(ref1);
     QVERIFY(ref2);
-    QVERIFY(static_cast<bool>(ref1) == R().isValid());
+    if constexpr(RegistryReferenceable<R>) QVERIFY(static_cast<bool>(ref1) == R().isValid());
     QVERIFY(thread().push(ref2));
 
     if constexpr(WritableReferenceable<R>) {
@@ -338,6 +359,7 @@ inline void StatelessReferenceTestSet<R>::moveAssign() {
 
     QVERIFY(thread().compare());
     thread().pop(2);
+    softPop();
     QVERIFY(ref2.release(&thread()));
 }
 

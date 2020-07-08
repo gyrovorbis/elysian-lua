@@ -514,10 +514,12 @@ public:
 
     bool pull(const ThreadViewBase* pThread) { return fromStackIndex(pThread, -1); }
     bool push(const ThreadViewBase* pThread) const {
-        bool success = false;
+        bool success = true;
         if(isValid()) {
             pThread->pushValue(getStackIndex());
             success = true;
+        } else {
+            pThread->pushNil();
         }
         return success;
     }

@@ -18,6 +18,8 @@ int main(int argc, char* argv[]) {
     UnitTestSuite testSuite;
     testSuite.enqueueTestSet(new StackTestSet);
     testSuite.enqueueTestSet(new StatelessRegistryReferenceTestSet);
+    testSuite.enqueueTestSet(new StatelessStackReferenceTestSet);
+    testSuite.enqueueTestSet(new StatelessGlobalsTableFixedReferenceTestSet);
     testSuite.enqueueTestSet(new GlobalsTableTestSet);
     testSuite.enqueueTestSet(new TableTestSet);
     testSuite.enqueueTestSet(new StackTableTestSet);
