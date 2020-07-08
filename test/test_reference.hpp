@@ -208,7 +208,6 @@ inline void StatelessReferenceTestSet<R>::push() {
         QVERIFY(refGuard.getCurrentDelta() == 1);
         QVERIFY(thread().push(ref));
     }
-    QVERIFY(refGuard.getCurrentDelta() == 2);
 
     QVERIFY(thread().isTable(-1));
     QVERIFY(thread().compare());
@@ -286,7 +285,6 @@ inline void StatelessReferenceTestSet<R>::moveConstruct() {
 
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().push("Fucker"));
-        thread().pushValue(-1);
         QVERIFY(softPull(ref2));
         QVERIFY(ref2);
         QVERIFY(ref2.isValid());
@@ -305,8 +303,9 @@ inline void StatelessReferenceTestSet<R>::moveConstruct() {
     if constexpr(WritableReferenceable<R>) {
         QVERIFY(thread().isString(-1));
         QVERIFY(QString(thread().toValue<const char*>(-1)) == "Fucker");
+        QVERIFY(refGuard.getCurrentDelta() == 1);
     } else {
-        QVERIFY(thread().push(ref2));
+
     }
     QVERIFY(thread().compare());
     thread().pop(2);
