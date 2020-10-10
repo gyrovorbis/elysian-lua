@@ -33,29 +33,57 @@ struct stack_getter<std::nullptr_t> {
     }
 };
 
+#if 0
 template<typename T>
-struct stack_checker<T, sfinae_decay_type<T, lua_Integer>> {
+struct stack_checker<T, sfinae_decay_type_t<T, lua_Integer>> {
     static bool check(const ThreadViewBase* pBase, StackRecord&, int index) {
         return pBase->isInteger(index);
     }
 };
 
 template<typename T>
-struct stack_getter<T, sfinae_decay_type<T, lua_Integer>> {
+struct stack_getter<T, sfinae_decay_type_t<T, lua_Integer>> {
     static lua_Integer get(const ThreadViewBase* pBase, StackRecord&, int index) {
         return pBase->toInteger(index);
     }
 };
 
 template<typename T>
-struct stack_pusher<T, sfinae_decay_type<T, lua_Integer>> {
+struct stack_pusher<T, sfinae_decay_type_t<T, lua_Integer>> {
     static int push(const ThreadViewBase* pBase, StackRecord&, lua_Integer value) {
         pBase->push(value);
         return 1;
     }
 };
 
+#else
 
+template<typename T>
+struct stack_checker<T, std::enable_if_t<std::is_integral_v<std::decay_t<T>>>> {
+    static bool check(const ThreadViewBase* pBase, StackRecord&, int index) {
+        return pBase->isInteger(index);
+    }
+};
+
+template<typename T>
+struct stack_getter<T, std::enable_if_t<std::is_integral_v<std::decay_t<T>>>> {
+    static lua_Integer get(const ThreadViewBase* pBase, StackRecord&, int index) {
+        return pBase->toInteger(index);
+    }
+};
+
+template<typename T>
+struct stack_pusher<T, std::enable_if_t<std::is_integral_v<std::decay_t<T>>>> {
+    static int push(const ThreadViewBase* pBase, StackRecord&, T value) {
+        pBase->push(value);
+        return 1;
+    }
+};
+
+
+#endif
+
+#if 0
 template<>
 struct stack_checker<lua_Number> {
     static bool check(const ThreadViewBase* pBase, StackRecord& record, int index) {
@@ -77,6 +105,31 @@ struct stack_pusher<lua_Number> {
         return 1;
     }
 };
+
+#else
+
+template<typename T>
+struct stack_checker<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+    static bool check(const ThreadViewBase* pBase, StackRecord&, int index) {
+        return pBase->isNumber(index);
+    }
+};
+
+template<typename T>
+struct stack_getter<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+    static lua_Number get(const ThreadViewBase* pBase, StackRecord&, int index) {
+        return pBase->toNumber(index);
+    }
+};
+
+template<typename T>
+struct stack_pusher<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+    static int push(const ThreadViewBase* pBase, StackRecord&, T value) {
+        pBase->push(value);
+        return 1;
+    }
+};
+#endif
 
 
 template<>
@@ -297,7 +350,7 @@ struct index_sequence_stack_pusher {
 };
 
 template<typename... Args>
-constexpr const static int stack_count<std::tuple<Args...>> = (stack_count<Args> + ...);
+constinit const static int stack_count<std::tuple<Args...>> = (stack_count<Args> + ...);
 
 template<typename... Args>
 struct stack_checker<std::tuple<Args...>>:
@@ -330,7 +383,7 @@ struct stack_pusher<std::tuple<Args...>>:
 {};
 
 template<typename T, size_t S>
-constexpr const static bool stack_table_type<std::array<T, S>> = true;
+constinit const static bool stack_table_type<std::array<T, S>> = true;
 
 template<typename T, size_t S>
 struct stack_pusher<std::array<T, S>> {
@@ -344,7 +397,7 @@ struct stack_pusher<std::array<T, S>> {
 };
 
 template<typename T, size_t S>
-constexpr const static bool stack_table_type<T[S]> = true;
+constinit const static bool stack_table_type<T[S]> = true;
 
 template<typename T, size_t S>
 struct stack_pusher<T[S]> {
@@ -358,7 +411,7 @@ struct stack_pusher<T[S]> {
 };
 
 template<typename... Args>
-constexpr const static bool stack_table_type<LuaTableValues<Args...>> = true;
+constinit const static bool stack_table_type<LuaTableValues<Args...>> = true;
 
 template<typename... Args>
 struct stack_pusher<LuaTableValues<Args...>> {
@@ -371,7 +424,7 @@ struct stack_pusher<LuaTableValues<Args...>> {
 };
 
 template<typename Key, typename Value>
-constexpr const static bool stack_table_type<std::map<Key, Value>> = true;
+constinit const static bool stack_table_type<std::map<Key, Value>> = true;
 
 template<typename Key, typename Value>
 struct stack_checker<std::map<Key, Value>> {

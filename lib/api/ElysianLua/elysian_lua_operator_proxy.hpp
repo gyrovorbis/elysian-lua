@@ -34,7 +34,10 @@ class OperatorProxy:
         //,public Callable<FunctionResult, FunctionResult>
 {
 public:
-    OperatorProxy(LType& lhs, RType& rhs, OperatorType op);
+    template<typename L, typename R>
+        requires(std::is_same_v<std::decay_t<L>, LType> &&
+                 std::is_same_v<std::decay_t<R>, RType>)
+    OperatorProxy(L&& lhs, R&& rhs, OperatorType op);
 
     bool isValid(void) const;
 
@@ -60,10 +63,16 @@ private:
     OperatorType m_operator = OperatorType::Invalid;
 };
 
+template<typename L, typename R>
+OperatorProxy(L&& lhs, R&& rhs, OperatorType op) -> OperatorProxy<std::decay_t<L>, std::decay_t<R>>;
+
 template<typename LType, typename RType>
-inline OperatorProxy<LType, RType>::OperatorProxy(LType& lhs, RType& rhs, OperatorType op):
-    m_lOperand(lhs),
-    m_rOperand(rhs),
+template<typename L, typename R>
+    requires(std::is_same_v<std::decay_t<L>, LType> &&
+             std::is_same_v<std::decay_t<R>, RType>)
+inline OperatorProxy<LType, RType>::OperatorProxy(L&& lhs, R&& rhs, OperatorType op):
+    m_lOperand(std::forward<L>(lhs)),
+    m_rOperand(std::forward<R>(rhs)),
     m_operator(op)
 {
     assert(op != OperatorType::Invalid);

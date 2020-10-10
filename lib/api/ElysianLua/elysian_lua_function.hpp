@@ -38,8 +38,7 @@ public:
     //template<typename T, typename Key>
     //const FunctionBase<Ref>& operator=(const TableProxy<T, Key>& proxy);
 
-    template<typename Ref2>
-    FunctionBase<Ref>& operator=(Ref2&& rhs);
+    FunctionBase<Ref>& operator=(auto&& rhs);
 
     //template<typename Ref2>
     //const FunctionBase<Ref>& operator=(const FunctionBase<Ref2>& rhs);
@@ -49,13 +48,11 @@ public:
 
     const FunctionBase<Ref>& operator=(std::nullptr_t);
 
-    template<typename R>
-    bool operator==(R&& rhs) const;
+    bool operator==(const auto& rhs) const;
 
     bool operator==(std::nullptr_t) const;
 
-    template<typename R>
-    bool operator!=(R&& rhs) const;
+    bool operator!=(auto&& rhs) const;
 
     bool operator!=(std::nullptr_t) const;
 
@@ -191,8 +188,9 @@ inline bool FunctionBase<Ref>::operator!=(std::nullptr_t) const {
 }
 
 template<typename Ref>
-template<typename R>
-inline bool FunctionBase<Ref>::operator==(R&& rhs) const {
+inline bool FunctionBase<Ref>::operator==(const auto& rhs) const {
+    return static_cast<const Ref&>(*this) == rhs;
+#if 0
     bool equal = false;
     if(!isValid() && !rhs.isValid()) { //two empty function refs are equal
         equal = true;
@@ -206,11 +204,11 @@ inline bool FunctionBase<Ref>::operator==(R&& rhs) const {
         }
     }
     return equal;
+#endif
 }
 
 template<typename Ref>
-template<typename R>
-inline bool FunctionBase<Ref>::operator!=(R&& rhs) const {
+inline bool FunctionBase<Ref>::operator!=(auto&& rhs) const {
     return !(*this == rhs);
 }
 #if 0

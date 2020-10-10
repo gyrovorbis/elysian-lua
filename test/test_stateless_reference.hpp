@@ -38,7 +38,7 @@ protected:
 
     template<typename F>
     auto createTestCase(int refDelta, F&& testFn) {
-        return [=](Variant v) {
+        return [=, this](Variant v) {
             StackGuard stackGuard(&this->thread());
             RegistryRefCountGuard refGuard;
 

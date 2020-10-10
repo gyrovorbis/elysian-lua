@@ -794,8 +794,10 @@ inline void VariantTestSet::boolAsString(void) {
 }
 
 inline void VariantTestSet::numberAsString(void) {
-    Variant v(static_cast<lua_Number>(12.4f));
-    QVERIFY(QVariant(v.asString().getValue<const char*>()).value<lua_Number>() == static_cast<lua_Number>(12.4f)); //helps with inaccuracies and different precisions of strings!!!
+    Variant v(static_cast<lua_Number>(12.5f));
+
+    QVERIFY(QVariant(v.asString().getValue<const char*>()).value<lua_Number>()
+            == static_cast<lua_Number>(12.5f)); //helps with inaccuracies and different precisions of strings!!!
     v = static_cast<lua_Number>(46);
     QString newStr = v.asString().getValue<const char*>();
     QVERIFY(newStr == "46.0");

@@ -21,10 +21,6 @@ private slots:
 };
 
 inline void GlobalsTableTestSet::globalsTableCreate(void) {
-    QVERIFY(sizeof(lua_Integer) == 4);
-    if constexpr(!std::is_same_v<lua_Number, float>)
-    QVERIFY(false);
-
     GlobalsTable nullTable;
     GlobalsTable globals = m_pThreadView->getGlobalsTable();
     QVERIFY(globals);

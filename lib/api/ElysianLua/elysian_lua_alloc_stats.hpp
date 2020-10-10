@@ -38,7 +38,7 @@ public:
   void reallocEvent(int luaType, size_t oldSize, size_t newSize);
   void freeEvent(int luaType, size_t size);
 
-  static CounterType luaTypeToCounterType(int type);
+  static constexpr CounterType luaTypeToCounterType(int type);
 
 private:
   Counters &_getTypeCounters(CounterType type);
@@ -49,7 +49,7 @@ private:
   Counters _typeCounters[static_cast<int>(CounterType::Count)];
 };
 
-inline auto AllocStats::luaTypeToCounterType(int type) -> CounterType {
+inline constexpr auto AllocStats::luaTypeToCounterType(int type) -> CounterType {
   switch (type) {
   case LUA_TSTRING:
     return CounterType::String;

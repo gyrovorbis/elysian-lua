@@ -143,8 +143,7 @@ public:
 
     int push(void) const; // doesn't do shit
     int push(std::nullptr_t) const;
-    int push(lua_Integer integer) const;
-    int push(lua_Number number) const;
+
     int push(bool boolean) const;
     const char* push(const char* pString) const; // gracefully push nil for nullptr? Or empty string? wtf?
 #ifdef ELYSIAN_LUA_USE_STD_STRING
@@ -153,8 +152,9 @@ public:
     int push(void* pLightUd) const; // gracefully push nil for nullptr
     int push(const lua_CFunction pCFunc) const; //gracefully push nil for nullptr
 
-    template<typename T>
-    int push(const T& value) const;
+    int push(const auto& value) const;
+    int push(const std::integral auto& integer) const;
+    int push(const std::floating_point auto& number) const;
 
     template<typename... Args>
     int pushMulti(Args&&... args) const;
@@ -294,7 +294,7 @@ public:
     int getUserValue(int index, int n, V& value) const;
 
     template<typename T>
-    constexpr static int getType(void);
+    consteval static int getType(void);
 
     template<typename T>
     bool checkType(int index) const;
@@ -552,20 +552,20 @@ inline bool ThreadViewBase::compare(const ThreadViewBase* lhs, const ThreadViewB
 }
 
 template<typename T>
-constexpr inline int ThreadViewBase::getType(void) { return LUA_TNONE; }
-template<> constexpr inline int ThreadViewBase::getType<void>(void) { return LUA_TNONE; }
-template<> constexpr inline int ThreadViewBase::getType<std::nullptr_t>(void) { return LUA_TNIL; }
-template<> constexpr inline int ThreadViewBase::getType<void*>(void) { return LUA_TLIGHTUSERDATA; }
-template<> constexpr inline int ThreadViewBase::getType<lua_Integer>(void) { return LUA_TNUMBER; }
-template<> constexpr inline int ThreadViewBase::getType<lua_Number>(void) { return LUA_TNUMBER; }
-template<> constexpr inline int ThreadViewBase::getType<bool>(void) { return LUA_TBOOLEAN; }
-template<> constexpr inline int ThreadViewBase::getType<const char*>(void) { return LUA_TSTRING; }
+consteval inline int ThreadViewBase::getType(void) { return LUA_TNONE; }
+template<> consteval inline int ThreadViewBase::getType<void>(void) { return LUA_TNONE; }
+template<> consteval inline int ThreadViewBase::getType<std::nullptr_t>(void) { return LUA_TNIL; }
+template<> consteval inline int ThreadViewBase::getType<void*>(void) { return LUA_TLIGHTUSERDATA; }
+template<> consteval inline int ThreadViewBase::getType<lua_Integer>(void) { return LUA_TNUMBER; }
+template<> consteval inline int ThreadViewBase::getType<lua_Number>(void) { return LUA_TNUMBER; }
+template<> consteval inline int ThreadViewBase::getType<bool>(void) { return LUA_TBOOLEAN; }
+template<> consteval inline int ThreadViewBase::getType<const char*>(void) { return LUA_TSTRING; }
 #ifdef ELYSIAN_LUA_USE_STD_STRING
-template<> constexpr inline int ThreadViewBase::getType<std::string>(void) { return LUA_TSTRING; }
+template<> consteval inline int ThreadViewBase::getType<std::string>(void) { return LUA_TSTRING; }
 #endif
-template<> constexpr inline int ThreadViewBase::getType<lua_CFunction>(void) { return LUA_TFUNCTION; }
+template<> consteval inline int ThreadViewBase::getType<lua_CFunction>(void) { return LUA_TFUNCTION; }
 //template<> constexpr inline int ThreadViewBase::getType<Function>(void) { return LUA_TFUNCTION; }
-template<> constexpr inline int ThreadViewBase::getType<lua_State*>(void) { return LUA_TTHREAD; }
+template<> consteval inline int ThreadViewBase::getType<lua_State*>(void) { return LUA_TTHREAD; }
 
 template<typename T>
 inline const char* ThreadViewBase::toCString(T&& complexStr) {
@@ -580,7 +580,7 @@ inline const char* ThreadViewBase::toCString(T&& complexStr) {
 inline const char* ThreadViewBase::getStatusString(int statusCode) {
     switch(statusCode) {
     case LUA_OK: return "Ok";
-    case LUA_ERRRUN: return "Runtime Error";
+    [[likely]] case LUA_ERRRUN: return "Runtime Error";
     case LUA_ERRMEM: return "Memory Error";
     case LUA_ERRERR: return "Message Handler Error";
     case LUA_ERRSYNTAX: return "Syntax Error";
@@ -616,12 +616,12 @@ inline void ThreadViewBase::_setState(lua_State *pState) { m_pState = pState; }
 inline int ThreadViewBase::push(void) const { return 0; }
 inline int ThreadViewBase::push(std::nullptr_t) const { pushNil(); return 1; }
 inline void ThreadViewBase::pushNil(void) const { lua_pushnil(m_pState); }
-inline int ThreadViewBase::push(lua_Integer integer) const { lua_pushinteger(m_pState, integer); return 1; }
-inline int ThreadViewBase::push(lua_Number number) const { lua_pushnumber(m_pState, number); return 1; }
+inline int ThreadViewBase::push(const std::integral auto& integer) const { lua_pushinteger(m_pState, integer); return 1; }
+inline int ThreadViewBase::push(const std::floating_point auto& number) const { lua_pushnumber(m_pState, number); return 1; }
 inline int ThreadViewBase::push(bool boolean) const { lua_pushboolean(m_pState, boolean); return 1;}
 inline const char* ThreadViewBase::push(const char* pString) const {
     const char* pRetStr = nullptr;
-    if(pString) pRetStr = lua_pushstring(m_pState, pString);
+    [[likely]] if(pString) pRetStr = lua_pushstring(m_pState, pString);
     else pushNil();
     return pRetStr;
 }
@@ -631,12 +631,12 @@ inline const char* ThreadViewBase::push(std::string cppStr) const {
 }
 #endif
 inline int ThreadViewBase::push(void* pLightUd) const {
-    if(pLightUd) lua_pushlightuserdata(m_pState, pLightUd);
+    [[likely]] if(pLightUd) lua_pushlightuserdata(m_pState, pLightUd);
     else lua_pushnil(m_pState);
     return 1;
 }
 inline int ThreadViewBase::push(const lua_CFunction pCFunc) const {
-    if(pCFunc) lua_pushcfunction(m_pState, pCFunc);
+    [[likely]] if(pCFunc) lua_pushcfunction(m_pState, pCFunc);
     else lua_pushnil(m_pState);
     return 1;
 }
@@ -658,8 +658,8 @@ inline void ThreadViewBase::pushValue(int index) const {
     assert(toAbsStackIndex(index) <= getTop());
     lua_pushvalue(m_pState, index);
 }
-template<typename T>
-inline int ThreadViewBase::push(const T& value) const {
+
+inline int ThreadViewBase::push(const auto& value) const {
     StackRecord record;
     return stack_push(this, record, value);
 }
@@ -685,7 +685,7 @@ inline void ThreadViewBase::remove(int index) const {
 }
 
 inline void ThreadViewBase::remove(int index, int count) const {
-    if(count == 1) {
+    [[likely]] if(count == 1) {
         remove(index);
     } else {
         const int firstIndex = toAbsStackIndex(index);
@@ -759,7 +759,7 @@ inline bool ThreadViewBase::isObject(int index) const { return isFunction(index)
 inline lua_Integer ThreadViewBase::toInteger(int index, bool* pIsNum) const {
     int isNum;
     int retVal = lua_tointegerx(m_pState, index, &isNum);
-    if(pIsNum) *pIsNum = static_cast<bool>(isNum);
+    [[likely]] if(pIsNum) *pIsNum = static_cast<bool>(isNum);
     return retVal;
 }
 
@@ -774,7 +774,7 @@ inline const char* ThreadViewBase::convertToString(int index, size_t* pLength) c
 inline lua_Number ThreadViewBase::toNumber(int index, bool* pIsNum) const {
     int isNum;
     lua_Number retVal = lua_tonumberx(m_pState, index, &isNum);
-    if(pIsNum) *pIsNum = static_cast<bool>(isNum);
+    [[likely]] if(pIsNum) *pIsNum = static_cast<bool>(isNum);
     return retVal;
 }
 
@@ -934,7 +934,7 @@ inline bool ThreadViewBase::pull(V& value) const {
     bool success = false;
     const int startIndex = -stack_impl::stack_count<V>;
 
-    if(checkType<V>(startIndex)) {
+    [[likely]] if(checkType<V>(startIndex)) {
         value = toValue<V>(startIndex);
         success = true;
         pop(stack_impl::stack_pull_pop_count<V>);
@@ -1000,7 +1000,7 @@ inline int ThreadViewBase::getTableMulti(int index, const std::tuple<Keys...>& k
 template<typename C, std::size_t... Is>
 inline int ThreadViewBase::getTableMulti(int index, const C& container, std::index_sequence<Is...>) const {
     const int absIndex = toAbsStackIndex(index);
-    StackGuard<true> guard(this, 1);
+    [[maybe_unused]] StackGuard<true> guard(this, 1);
 
     auto processElement = [&](const C& cont, auto Idx) {
         /* Compile-time shenanigans to avoid having to duplicate the source
@@ -1024,8 +1024,7 @@ inline void ThreadViewBase::setTableMulti(int index, const std::tuple<Keys...>& 
 
 template<typename V, typename C, std::size_t... Is>
 inline void ThreadViewBase::setTableMulti(int index, const C& container, std::index_sequence<Is...>, V&& value) const {
-    StackGuard guard(this);
-    (void)guard;
+    [[maybe_unused]] StackGuard guard(this);
     const int absIndex = toAbsStackIndex(index);
 
     auto processElement = [&](const C& cont, auto Idx) {
@@ -1204,17 +1203,17 @@ inline int ThreadViewBase::next(int index) const {
 template<typename F>
 inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
     //ELYSIAN_LUA_STACK_GUARD(this);
-    //StackGuard<false> scopeGuard(this);
+    StackGuard<false> scopeGuard(this);
     const int absIndex = toAbsStackIndex(index);
     pushNil();
 
     if constexpr(std::is_same_v<bool, std::invoke_result_t<F>>) {
-        while(next(absIndex) != 0) {
-            //scopeGuard.begin();
+        [[likely]] while(next(absIndex) != 0) {
+            scopeGuard.begin();
             bool proceed = body();
-            //scopeGuard.end();
+            scopeGuard.end();
             pop();
-            if(!proceed) {
+            [[unlikely]] if(!proceed) {
                 pop();
                 return false;
             }
@@ -1222,10 +1221,10 @@ inline auto ThreadViewBase::iterateTable(int index, F&& body) const {
         return true;
 
     } else {
-        while(next(absIndex) != 0) {
-           //scopeGuard.begin();
+        [[likely]] while(next(absIndex) != 0) {
+           scopeGuard.begin();
             body();
-           //scopeGuard.end();
+           scopeGuard.end();
             pop();
         }
     }

@@ -40,7 +40,7 @@ enum class Metamethod: uint8_t {
 
 
 struct MetatableCommon {
-   static constexpr const char* getMetamethodName(Metamethod method);
+   static consteval const char* getMetamethodName(Metamethod method);
   /*
    * Some have to be functions, some can be tables, some can be callable objects
    bool validateMetamethod()
@@ -63,11 +63,8 @@ public:
 
     auto getMetamethod(Metamethod method) const -> TableProxy<Metatable<RefType, GlobalsTable>, const char*>;
 
-     template<typename F>
-     void setMetamethod(Metamethod method, F&& func) const;
-
-     template<typename... Args>
-     bool callMetamethod(Metamethod method, Args&&... args) const;
+     void setMetamethod(Metamethod method, auto&& func) const;
+     bool callMetamethod(Metamethod method, auto&&... args) const;
 
 };
 
@@ -81,7 +78,7 @@ inline auto Metatable<RefType, GlobalsTable>::getMetamethod(Metamethod method) c
 
 
 
-inline constexpr const char* MetatableCommon::getMetamethodName(Metamethod method) {
+inline consteval const char* MetatableCommon::getMetamethodName(Metamethod method) {
 
     switch(method) {
     case Metamethod::Add: return "__add";

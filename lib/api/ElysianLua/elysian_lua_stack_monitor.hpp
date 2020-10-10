@@ -173,7 +173,7 @@ template<Monitorable M, bool RAII>
 inline auto ScopeGuard<M, RAII>::end(void) -> ValueType {
     const auto delta = M::end();
 
-    if(delta != getExpectedDelta()) {
+    [[unlikely]] if(delta != getExpectedDelta()) {
         this->getThread()->setCurrentCppExecutionContext(m_cppCtx);
 #if ELYSIAN_LUA_STACK_GUARD_OPTION == ELYSIAN_LUA_STACK_GUARD_LUA_ERROR
         this->getThread()->error("INVALID STACK DELTA [Expected: %d, Actual: %d, Begin: %d, End: %d]", getExpectedDelta(), delta, this->getBeginValue(), this->getEndValue());

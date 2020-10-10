@@ -44,7 +44,7 @@ template <typename... Args>
     using tuple_types = typename meta_detail::tuple_types_<Args...>::type;
 
     template<typename T, typename E>
-    using sfinae_decay_type = std::enable_if_t<std::is_same_v<std::decay_t<T>, E>, void>;
+    using sfinae_decay_type_t = std::enable_if_t<std::is_same_v<std::decay_t<T>, E>, void>;
 
     //template<typename T, typename... Es>
     //using sfinae_decay_types = std::enable_if_t<(std::is_same<T, std::decay<Es>>) || ...)

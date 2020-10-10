@@ -10,6 +10,7 @@
 
 #include <limits.h>
 #include <stddef.h>
+#include <stdint.h>
 
 
 /*
@@ -527,7 +528,7 @@
 
 #if LUA_INT_TYPE == LUA_INT_INT		/* { int */
 
-#define LUA_INTEGER		int
+#define LUA_INTEGER         int
 #define LUA_INTEGER_FRMLEN	""
 
 #define LUA_MAXINTEGER		INT_MAX

@@ -101,16 +101,14 @@ public:
 
     const TableBase<RefType, GlobalsTable>& operator=(std::nullptr_t);
 
-    template<typename Ref2>
-    TableBase<RefType, GlobalsTable>& operator=(Ref2&& rhs);
+    TableBase<RefType, GlobalsTable>& operator=(auto&& rhs);
 
     bool isValid(void) const;
 };
 
 template<typename RefType, bool GlobalsTable>
-template<typename Ref2>
-inline TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(Ref2&& rhs) {
-    static_cast<RefType&>(*this) = std::forward<Ref2>(rhs);
+inline TableBase<RefType, GlobalsTable>& TableBase<RefType, GlobalsTable>::operator=(auto&& rhs) {
+    static_cast<RefType&>(*this) = std::forward<decltype(rhs)>(rhs);
     return *this;
 }
 

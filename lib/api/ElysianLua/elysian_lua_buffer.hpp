@@ -57,8 +57,7 @@ public:
     bool operator==(const char* pStr);
     bool operator!=(const char* pStr);
 
-    template<typename T>
-    Buffer& operator <<(T&& value);
+    Buffer& operator <<(auto&& value);
 
 protected:
     ThreadView getThread(void);
@@ -122,8 +121,7 @@ protected:
         return *this;
     }
 
-    template<typename T>
-    inline Buffer& Buffer::operator <<(T&& value) {
+    inline Buffer& Buffer::operator <<(auto&& value) {
         *this += value;
         return *this;
     }

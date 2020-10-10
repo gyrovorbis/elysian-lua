@@ -1,7 +1,7 @@
 #ifndef ELYSIAN_LUA_THREAD_STATE_HPP
 #define ELYSIAN_LUA_THREAD_STATE_HPP
 
-#include <concepts>
+#include "elysian_lua_traits.hpp"
 
 namespace elysian::lua {
 
@@ -10,7 +10,7 @@ class ThreadViewBase;
 template<typename T>
 concept ThreadStateful =
     requires(T t) {
-        { t.getThread() } -> std::same_as<const ThreadViewBase*>;
+        { t.getThread() } -> same_as<const ThreadViewBase*>;
     };
 
 template<typename T>

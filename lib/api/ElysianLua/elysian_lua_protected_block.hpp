@@ -19,8 +19,7 @@ public:
     int getErrorCode(void) const;
     const ThreadViewBase* getThread(void) const;
 
-    template<typename F>
-    int operator=(F&& lambda);
+    int operator=(auto&& lambda);
 
 private:
 
@@ -42,11 +41,9 @@ inline void* ProtectedBlock::getLambda(void) const { return m_pLambda; }
 inline int ProtectedBlock::getErrorCode(void) const { return m_errorCode; }
 inline const ThreadViewBase* ProtectedBlock::getThread(void) const { return m_pThread; }
 
-template<typename F>
-inline int ProtectedBlock::operator=(F&& func) {
-    StackGuard stackGuard(getThread());
-    (void)stackGuard;
-    if(getThread()->push(&cFuncWrapper<F&&>)) {
+inline int ProtectedBlock::operator=(auto&& func) {
+    [[maybe_unused]] StackGuard stackGuard(getThread());
+    if(getThread()->push(&cFuncWrapper<decltype(func)>)) {
         if(getThread()->push(reinterpret_cast<void*>(this))) {
             m_pLambda = reinterpret_cast<void*>(&func);
             getThread()->setCurrentCppExecutionContext(*this);

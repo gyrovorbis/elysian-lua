@@ -15,7 +15,19 @@ template<BasicReferenceable R>
 class ReferenceTestSet:
         public StatelessReferenceTestSet<R, ReferenceTestSetBase>
 {
-
+    void tableCreateFromStack(void);
+    void tableCreateNewEmpty(void);
+    void tablePush(void);
+    void tableCreateCopyConstruct(void);
+    void tableCreateNewTableValues(void);
+    void tableCreateArray(void);
+    void tableCompare(void);
+    void tableGetField(void);
+    void tableSetField(void);
+    void tableIterate(void);
+    void tableAppendValues(void);
+    void tableAppendTable(void);
+    void tableMetaTable(void);
 };
 
 class RegistryReferenceTestSet:

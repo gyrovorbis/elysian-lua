@@ -54,7 +54,7 @@ public:
     template<typename First, typename... Rest>
     inline auto clippedIndexSequence(const std::tuple<First, Rest...>& key) const;
 
-    int push(const ThreadViewBase* pThread) const;
+    bool push(const ThreadViewBase* pThread) const;
 
     template<typename T2>
     T2 get(void) const;
@@ -149,13 +149,13 @@ inline auto TableProxy<T, Key>::clippedIndexSequence(const std::tuple<First, Res
 }
 
 template<typename T, typename Key>
-inline int TableProxy<T, Key>::push(const ThreadViewBase* pThread) const {
+inline bool TableProxy<T, Key>::push(const ThreadViewBase* pThread) const {
     m_table.getField(std::get<0>(m_key));   //Always do the first one via the table, which is optimized over the generic thread accesses!!
     if constexpr(std::tuple_size<Key>::value > 1) {
         getThread()->getTableMulti(-1, m_key, clippedIndexSequence(m_key));
         getThread()->remove(-2);
     }
-    return 1;
+    return true;
 }
 
 template<typename T, typename Key>

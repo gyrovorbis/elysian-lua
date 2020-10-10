@@ -28,10 +28,8 @@ public:
 
     int push(const ThreadViewBase* pThread) const;
 
-    template<typename R>
-    bool operator==(const R& rhs) const;
-    template<typename R>
-    bool operator!=(const R& rhs) const;
+    bool operator==(const auto& rhs) const;
+    bool operator!=(const auto& rhs) const;
     StackProxy operator[](int offset) const;
 
     template<typename T>
@@ -144,15 +142,13 @@ inline bool FunctionResultBase<CRTP>::pushFunction(void) const {
 }
 
 template<typename CRTP>
-template<typename R>
-inline bool FunctionResultBase<CRTP>::operator==(const R& rhs) const {
-    R tempVal = *this;
+inline bool FunctionResultBase<CRTP>::operator==(const auto& rhs) const {
+    decltype(rhs) tempVal = *this;
     return (tempVal == rhs);
 }
 
 template<typename CRTP>
-template<typename R>
-inline bool FunctionResultBase<CRTP>::operator!=(const R& rhs) const {
+inline bool FunctionResultBase<CRTP>::operator!=(const auto& rhs) const {
     return !(*this == rhs);
 }
 

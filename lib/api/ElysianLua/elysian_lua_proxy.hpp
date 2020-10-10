@@ -3,7 +3,6 @@
 
 #include "elysian_lua_reference.hpp"
 
-
 namespace elysian::lua {
 
 class ThreadViewBase;
@@ -31,7 +30,7 @@ public:
 
     template<typename T = CRTP>
     requires requires (T b, const ThreadViewBase* pThread) {
-        { b.push(pThread) } -> std::same_as<bool>;
+        { b.push(pThread) } -> same_as<bool>;
     }
     bool push(const ThreadViewBase* pThread) const
     {
@@ -45,6 +44,14 @@ public:
             index = pThread->toAbsStackIndex(-1);
         }
         return index;
+    }
+
+    int makeStackIndex(void) const {
+        return makeStackIndex(static_cast<const CRTP*>(this)->getThread());
+    }
+
+    bool doneWithStackIndex(int index) const {
+        return doneWithStackIndex(static_cast<const CRTP*>(this)->getThread(), index);
     }
 
     bool doneWithStackIndex(const ThreadViewBase* pThread, int index) const {

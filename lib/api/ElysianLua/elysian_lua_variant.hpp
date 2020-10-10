@@ -5,6 +5,7 @@
 #include "elysian_lua_table_accessible.hpp"
 #include "elysian_lua_callable.hpp"
 #include <cstring>
+#include <concepts>
 
 #define ELYSIAN_LUA_PROXY_TYPE_METAFIELD "__typename"
 
@@ -100,8 +101,8 @@ public:
   Variant(std::nullptr_t null);
   Variant(const Variant &rhs);
   Variant(Variant &&rhs);
-  Variant(const lua_Integer integer);
-  Variant(const lua_Number number);
+  Variant(std::integral auto integer);
+  Variant(std::floating_point auto number);
   Variant(const bool val);
   Variant(const char *const string);
   Variant(void *const usd);
@@ -131,8 +132,8 @@ public:
   Variant &operator=(Variant &&rhs);
   Variant &operator=(const std::nullptr_t);
   Variant &operator=(const bool val);
-  Variant &operator=(const lua_Integer num);
-  Variant &operator=(const lua_Number num);
+  Variant &operator=(const std::integral auto num);
+  Variant &operator=(const std::floating_point auto num);
   Variant &operator=(const char *const string);
   Variant &operator=(void *const ptr);
   Variant &operator=(const lua_CFunction funcPtr);
@@ -146,8 +147,8 @@ public:
   bool operator==(const Variant &rhs) const;
   bool operator==(const std::nullptr_t) const;
   bool operator==(const bool val) const;
-  bool operator==(const lua_Integer num) const;
-  bool operator==(const lua_Number num) const;
+  bool operator==(const std::integral auto num) const;
+  bool operator==(const std::floating_point auto num) const;
   bool operator==(void *const ptr) const;
   bool operator==(const char *const str) const;
 
@@ -155,8 +156,8 @@ public:
   bool operator!=(const Variant &rhs) const;
   bool operator!=(const std::nullptr_t) const;
   bool operator!=(const bool val) const;
-  bool operator!=(const lua_Integer num) const;
-  bool operator!=(const lua_Number num) const;
+  bool operator!=(const std::integral auto num) const;
+  bool operator!=(const std::floating_point auto num) const;
   bool operator!=(void *const ptr) const;
   bool operator!=(const char *const str) const;
 
@@ -168,7 +169,10 @@ public:
   Variant asUserdata(void) const;
 
   // doesn't do conversions, so type better be known statically
-  template <typename T> T getValue(void) const;
+  template <typename T>             T getValue(void) const;
+ template<std::integral I>          I getValue(void) const;
+  template<std::floating_point F>   F getValue(void) const;
+
 
   int getRef(void) const;
   void setRef(const int ref);
@@ -176,8 +180,8 @@ public:
 
   template <typename T> void setValue(T *const ud);
   void setValue(const std::nullptr_t null);
-  void setValue(const lua_Integer number);
-  void setValue(const lua_Number number);
+  void setValue(const std::integral auto number);
+  void setValue(const std::floating_point auto number);
   void setValue(const char *const str);
   void setValue(const bool val);
   void setValue(void *const ptr);
@@ -567,8 +571,8 @@ inline Variant::Variant(const char *const string) {
   setValue(string);
 }
 inline Variant::Variant(const bool val) { setValue(val); }
-inline Variant::Variant(const lua_Number number) { setValue(number); }
-inline Variant::Variant(const lua_Integer num) { setValue(num); }
+inline Variant::Variant(const std::floating_point auto number) { setValue(number); }
+inline Variant::Variant(const std::integral auto num) { setValue(num); }
 inline Variant::Variant(void *const ptr) { setValue(ptr); }
 
 inline Variant::Variant(const lua_CFunction funcPtr) {
@@ -600,11 +604,11 @@ inline Variant &Variant::operator=(const std::nullptr_t) {
   setValue(nullptr);
   return *this;
 }
-inline Variant &Variant::operator=(const lua_Integer num) {
+inline Variant &Variant::operator=(const std::integral auto num) {
   setValue(num);
   return *this;
 }
-inline Variant &Variant::operator=(const lua_Number num) {
+inline Variant &Variant::operator=(const std::floating_point auto num) {
   setValue(num);
   return *this;
 }
@@ -678,7 +682,7 @@ inline bool Variant::operator==(const std::nullptr_t) const {
 inline bool Variant::operator==(const bool val) const {
   return getType() == LUA_TBOOLEAN && _value.boolean == val;
 }
-inline bool Variant::operator==(const lua_Integer num) const {
+inline bool Variant::operator==(const std::integral auto num) const {
     bool equal = false;
     if(getType() == LUA_TNUMBER) {
         if(isInteger()) equal = _value.integer == num;
@@ -686,7 +690,7 @@ inline bool Variant::operator==(const lua_Integer num) const {
     }
     return equal;
 }
-inline bool Variant::operator==(const lua_Number num) const {
+inline bool Variant::operator==(const std::floating_point auto num) const {
     bool equal = false;
     if(getType() == LUA_TNUMBER) {
         if(isInteger()) equal = _value.integer == num;
@@ -714,10 +718,10 @@ inline bool Variant::operator!=(const std::nullptr_t) const {
 inline bool Variant::operator!=(const bool val) const {
   return !(*this == val);
 }
-inline bool Variant::operator!=(const lua_Integer num) const {
+inline bool Variant::operator!=(const std::integral auto num) const {
   return !(*this == num);
 }
-inline bool Variant::operator!=(const lua_Number num) const {
+inline bool Variant::operator!=(const std::floating_point auto num) const {
   return !(*this == num);
 }
 inline bool Variant::operator!=(void *const ptr) const {
@@ -809,12 +813,12 @@ Variant::setValue(const std::initializer_list<VariantKVPair> &pairs) {
 
 inline void Variant::setValue(std::nullptr_t /*null*/) { setNil(); }
 
-inline void Variant::setValue(const lua_Integer number) {
+inline void Variant::setValue(const std::integral auto number) {
   _setType(LUA_TNUMBER, true);
   _value.integer = (lua_Integer)number;
 }
 
-inline void Variant::setValue(const lua_Number number) {
+inline void Variant::setValue(const std::floating_point auto number) {
   _setType(LUA_TNUMBER);
   _value.number = number;
 }
@@ -869,17 +873,20 @@ template <> inline bool Variant::getValue<bool>(void) const {
   return _value.boolean;
 }
 
-template <> inline lua_Number Variant::getValue<lua_Number>(void) const {
+template<std::floating_point F>
+inline F Variant::getValue(void) const {
   return isInteger() ? static_cast<lua_Number>(_value.integer) : _value.number;
+}
+
+
+template <std::integral I>
+inline I Variant::getValue(void) const {
+  return isInteger() ? _value.integer : static_cast<lua_Integer>(_value.number);
 }
 
 template <>
 inline const char *Variant::getValue<const char *>(void) const {
   return _value.string;
-}
-
-template <> inline lua_Integer Variant::getValue<lua_Integer>(void) const {
-  return isInteger() ? _value.integer : static_cast<lua_Integer>(_value.number);
 }
 
 template <> inline void *Variant::getValue<void *>(void) const {

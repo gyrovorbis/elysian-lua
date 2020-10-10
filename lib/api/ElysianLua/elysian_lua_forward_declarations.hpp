@@ -59,6 +59,7 @@ class ExplicitThreadStateful;
 class StaticThreadStateful;
 
 using GlobalsTablePsuedoRef = StatefulRefBase<StatelessGlobalsTableFixedRef, ExplicitThreadStateful>;
+using StaticGlobalsTablePsuedoref = StatefulRefBase<StatelessGlobalsTableFixedRef, StaticThreadStateful>;
 using RegistryRef = StatefulRefBase<StatelessRegRef, ExplicitThreadStateful>;
 using StaticRegistryRef = StatefulRefBase<StatelessRegRef, StaticThreadStateful>;
 using StackRef = StatefulRefBase<StatelessStackRef, ExplicitThreadStateful>;
@@ -131,13 +132,13 @@ template<typename T, typename=void>
 struct stack_pusher;
 
 template<typename T, typename=void>
-constexpr const static bool stack_table_type = false;
+constinit const static bool stack_table_type = false;
 
 template<typename T, typename=void>
-constexpr const static int stack_count = 1;
+constinit const static int stack_count = 1;
 
 template<typename T, typename SFINAE=void>
-constexpr const static int stack_pull_pop_count = stack_count<T, SFINAE>;
+constinit const static int stack_pull_pop_count = stack_count<T, SFINAE>;
 
 }
 

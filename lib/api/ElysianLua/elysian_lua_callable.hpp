@@ -96,10 +96,8 @@ protected:
         return pThread->push(m_funcRef);
     }
 public:
-
-    template<typename F>
-    void setMessageHandler(F&& func) {
-        m_funcRef = std::forward<F>(func);
+    void setMessageHandler(auto&& func) {
+        m_funcRef = std::forward<decltype(func)>(func);
     }
 };
 
@@ -121,36 +119,32 @@ template<typename CRTP,
 class Callable: public Caller {
 public:
 
-    template<typename... Args>
-    auto operator()(Args&&... args) const;
-
-    template<typename... Args>
-    auto contextualCall(CppExecutionContext ctx, Args&&... args) const;
+    auto operator()(auto&&... args) const;
+    auto contextualCall(CppExecutionContext ctx, auto&&... args) const;
 };
 
 template<typename CRTP, typename Caller>
-template<typename... Args>
-inline auto Callable<CRTP, Caller>::operator()(Args&&... args) const {
+inline auto Callable<CRTP, Caller>::operator()(auto&&... args) const {
     const CRTP* pSelf = static_cast<const CRTP*>(this);
     const ThreadViewBase* pThread = pSelf->getThread();
     assert(pThread);
 
     const int oldTop = pThread->getTop();
-    pSelf->pushFunction();
-    (pThread->push(std::forward<Args>(args)), ...);
+    const bool pushed = pSelf->pushFunction();
+    assert(pushed);
+    (pThread->push(std::forward<decltype(args)>(args)), ...);
     const int argPushCount = pThread->getTop() - oldTop - 1;
     return Caller::callFunction(pThread, argPushCount, LUA_MULTRET);
 }
 
 template<typename CRTP, typename Caller>
-template<typename... Args>
-inline auto Callable<CRTP, Caller>::contextualCall(CppExecutionContext ctx, Args&&... args) const {
+inline auto Callable<CRTP, Caller>::contextualCall(CppExecutionContext ctx, auto&&... args) const {
     const CRTP* pSelf = static_cast<const CRTP*>(this);
     const ThreadViewBase* pThread = pSelf->getThread();
 
     const int oldTop = pThread->getTop();
     pSelf->pushFunction();
-    (pThread->push(std::forward<Args>(args)), ...);
+    (pThread->push(std::forward<decltype(args)>(args)), ...);
     const int argPushCount = pThread->getTop() - oldTop - 1;
 
     pThread->setCurrentCppExecutionContext(std::move(ctx));

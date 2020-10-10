@@ -8,32 +8,21 @@ namespace elysian::lua {
 template<typename CRTP, bool Globals=false>
 class TableAccessible {
 public:
-    template<typename M>
-    int setMetaTable(M&& meta) const;
+    int setMetaTable(auto&& meta) const;
 
     template<typename M>
     M getMetaTable(void) const;
 
-    template<typename K>
-    int getField(K&& key) const;
-
-    template<typename K, typename V>
-    int getField(K&& key, V& value) const;
-
-    template<typename K, typename V>
-    int getFieldRaw(K&& key, V& value) const;
-
-    template<typename K, typename V>
-    void setField(K&& key, V&& value) const;
-
-    template<typename K, typename V>
-    void setFieldRaw(K&& key, V&& value) const;
+    int getField(auto&& key) const;
+    int getField(auto&& key, auto& value) const;
+    int getFieldRaw(auto&& key, auto& value) const;
+    void setField(auto&& key, auto&& value) const;
+    void setFieldRaw(auto&& key, auto&& value) const;
 
     lua_Integer getLength(void) const;
     lua_Unsigned getLengthRaw(void) const;
 
-    template<typename F>
-    void iterate(F&& iterator) const;
+    void iterate(auto&& iterator) const;
 
     template<typename K>
     TableProxy<CRTP, std::tuple<K>>
@@ -81,11 +70,10 @@ inline bool TableAccessible<CRTP, Globals>::_isValid(void) const {
 }
 
 template<typename CRTP, bool Globals>
-template<typename M>
-inline int TableAccessible<CRTP, Globals>::setMetaTable(M&& meta) const {
+inline int TableAccessible<CRTP, Globals>::setMetaTable(auto&& meta) const {
     int retVal = 0;
     const int stackIndex = this->_makeStackIndex();
-    if(this->_getThread()->push(std::forward<M>(meta))) {
+    if(this->_getThread()->push(std::forward<decltype(meta)>(meta))) {
         retVal = this->_getThread()->setMetaTable(stackIndex);
     }
 
@@ -122,13 +110,12 @@ inline lua_Unsigned TableAccessible<CRTP, Globals>::getLengthRaw(void) const {
 }
 
 template<typename CRTP, bool Globals>
-template<typename K>
-inline int TableAccessible<CRTP, Globals>::getField(K&& key) const {
+inline int TableAccessible<CRTP, Globals>::getField(auto&& key) const {
     if constexpr(Globals) {
-        return this->_getThread()->getGlobalsTable(std::forward<K>(key));
+        return this->_getThread()->getGlobalsTable(std::forward<decltype(key)>(key));
     } else {
         const int stackIndex = this->_makeStackIndex();
-        const int retVal = this->_getThread()->getTable(stackIndex, std::forward<K>(key));
+        const int retVal = this->_getThread()->getTable(stackIndex, std::forward<decltype(key)>(key));
         this->_doneWithStackndex(stackIndex);
         return retVal;
     }
@@ -136,52 +123,47 @@ inline int TableAccessible<CRTP, Globals>::getField(K&& key) const {
 
 
 template<typename CRTP, bool Globals>
-template<typename K, typename V>
-inline int TableAccessible<CRTP, Globals>::getField(K&& key, V& value) const {
+inline int TableAccessible<CRTP, Globals>::getField(auto&& key, auto& value) const {
     if constexpr(Globals) {
-        return this->_getThread()->getGlobalsTable(std::forward<K>(key), value);
+        return this->_getThread()->getGlobalsTable(std::forward<decltype(key)>(key), value);
     } else {
         const int stackIndex = this->_makeStackIndex();
-        const int retVal = this->_getThread()->getTable(stackIndex, std::forward<K>(key), value);
+        const int retVal = this->_getThread()->getTable(stackIndex, std::forward<decltype(key)>(key), value);
         this->_doneWithStackndex(stackIndex);
         return retVal;
     }
 }
 
 template<typename CRTP, bool Globals>
-template<typename K, typename V>
-inline int TableAccessible<CRTP, Globals>::getFieldRaw(K&& key, V& value) const {
+inline int TableAccessible<CRTP, Globals>::getFieldRaw(auto&& key, auto& value) const {
     const int stackIndex = this->_makeStackIndex();
-    const int retVal = this->_getThread()->getTableRaw(stackIndex, std::forward<K>(key), value);
+    const int retVal = this->_getThread()->getTableRaw(stackIndex, std::forward<decltype(key)>(key), value);
     this->_doneWithStackndex(stackIndex);
     return retVal;
 }
 
 template<typename CRTP, bool Globals>
-template<typename K, typename V>
-inline void TableAccessible<CRTP, Globals>::setField(K&& key, V&& value) const {
+inline void TableAccessible<CRTP, Globals>::setField(auto&& key, auto&& value) const {
     if constexpr(Globals) {
-        this->_getThread()->setGlobalsTable(std::forward<K>(key), std::forward<V>(value));
+        this->_getThread()->setGlobalsTable(std::forward<decltype(key)>(key), std::forward<decltype(value)>(value));
     } else {
         const int stackIndex = this->_makeStackIndex();
-        this->_getThread()->setTable(stackIndex, std::forward<K>(key), std::forward<V>(value));
+        this->_getThread()->setTable(stackIndex, std::forward<decltype(key)>(key), std::forward<decltype(value)>(value));
         this->_doneWithStackndex(stackIndex);
     }
 }
 
 template<typename CRTP, bool Globals>
-template<typename K, typename V>
-inline void TableAccessible<CRTP, Globals>::setFieldRaw(K&& key, V&& value) const {
+inline void TableAccessible<CRTP, Globals>::setFieldRaw(auto&& key, auto&& value) const {
     const int stackIndex = this->_makeStackIndex();
-    this->_getThread()->setTableRaw(stackIndex, std::forward<K>(key), std::forward<V>(value));
+    this->_getThread()->setTableRaw(stackIndex, std::forward<decltype(key)>(key), std::forward<decltype(value)>(value));
     this->_doneWithStackndex(stackIndex);
 }
 
 template<typename CRTP, bool Globals>
-template<typename F>
-void TableAccessible<CRTP, Globals>::iterate(F&& iterator) const {
+void TableAccessible<CRTP, Globals>::iterate(auto&& iterator) const {
     const int stackIndex = this->_makeStackIndex();
-    this->_getThread()->iterateTable(stackIndex, std::forward<F>(iterator));
+    this->_getThread()->iterateTable(stackIndex, std::forward<decltype(iterator)>(iterator));
     this->_doneWithStackndex(stackIndex);
 }
 
@@ -222,7 +204,7 @@ TableAccessible<CRTP, Globals>::operator+=(const TableAccessible<T, G2>& rhs) co
             });
         };
 
-        if(this->_getThread() == rhs._getThread()) {
+        if(ThreadViewBase::compare(this->_getThread(), rhs._getThread())) {
             copyTableEntries([](){});
         } else {
             copyTableEntries([&](){
