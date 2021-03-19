@@ -4,6 +4,7 @@
 #include <functional>
 #include <array>
 #include <cassert>
+#include <concepts>
 
 extern "C" {
 #   include <lua/lua.h>
