@@ -30,7 +30,7 @@ add_executable(ElysianLuaTests
 target_link_libraries(ElysianLuaTests
     libLua
     libElysianLua
-    Qt5::Core
-    Qt5::Test)
+    Qt6::Core
+    Qt6::Test)
 
 add_test(NAME ElysianLuaTests COMMAND ElysianLuaTests)
