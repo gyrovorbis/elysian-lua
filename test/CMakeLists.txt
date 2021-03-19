@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTO_RCC ON)
 set(CMAKE_AUTOIC ON)
 
-find_package(Qt5 COMPONENTS Core Test REQUIRED)
+find_package(Qt6 COMPONENTS Core Test REQUIRED)
 
 add_executable(ElysianLuaTests
     elysian_qtest.hpp
