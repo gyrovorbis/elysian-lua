@@ -41,7 +41,7 @@ build win10-vs2019:
     PREFIX_PATH: C:/Qt/6.0.2/msvc2019_64
 
 build macos-clang12:
-  extends .build_common
+  extends: .build_common
   tags:
     - macos
   variables:
