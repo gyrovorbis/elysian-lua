@@ -10,13 +10,12 @@
     - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=${PREFIX_PATH} -G Ninja
     - ninja
 
-    
 .build_linux:
   extends: .build_common
   variables:
     PREFIX_PATH: /home/falco/Qt/6.0.2/gcc_64
 
-build gcc:
+build ubuntu20-gcc10:
   extends: .build_linux
   tags:
     - linux
@@ -24,7 +23,7 @@ build gcc:
     CC: gcc
     CXX: g++
     
-build clang:
+build ubuntu20-clang11:
   extends: .build_linux
   tags:
     - master
@@ -32,7 +31,7 @@ build clang:
      CC: clang
      CXX: clang++
 
-build visual-studio:
+build win10-vs2019:
   extends: .build_common 
   tags:
     - visual-studio
@@ -41,23 +40,40 @@ build visual-studio:
     CXX: cl
     PREFIX_PATH: C:/Qt/6.0.2/msvc2019_64
 
+build macos-clang12:
+  extends .build_common
+  tags:
+    - macos
+  variables:
+    CC: clang
+    CXX: clang++
+    PREFIX_PATH: /Users/fgirgis/Qt/6.0.2/clang_64
+
 .test_common:
   stage: test
   script:
     - build/test/ElysianLuaTests
     
-test gcc:
+test ubuntu20-gcc10:
   extends: .test_common
-  needs: ["build gcc"]
+  needs: ["build ubuntu-gcc10"]
   dependencies:
-    - build gcc
+    - build ubuntu20-gcc10
   tags:
     - linux
     
-test clang:
+test ubuntu20-clang11:
   extends: .test_common
-  needs: ["build clang"]
+  needs: ["build ubuntu-clang11"]
   dependencies:
-    - build clang
+    - build ubuntu20-clang11
   tags:
     - master
+
+test win10-vs2019:
+  extends: .test_common
+  needs: ["build win10-vs2019"]
+  dependencies:
+    - build win10-vs2019
+  tags:
+    - win10
