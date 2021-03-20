@@ -10,8 +10,10 @@
     - echo ${CXX}
     - echo ${PREFIX_PATH}
     - env
-    - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=${PREFIX_PATH} -G Ninja
+    - ${CXX}
     - ninja
+    - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=${PREFIX_PATH} -G Ninja
+
     
 .build_linux:
   extends: .build_common
