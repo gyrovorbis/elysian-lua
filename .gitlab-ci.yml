@@ -40,6 +40,15 @@ build win10-vs2019:
     CXX: cl
     PREFIX_PATH: C:/Qt/6.0.2/msvc2019_64
 
+build win10-cygwin-gcc10:
+  extends: .build_common
+  tags:
+    - gcc, mingw, win10
+  variables:
+    CC: gcc
+    GCC: g++
+    PREFIX_PATH: C:/Qt/6.0.2/mingw81_64
+
 build macos-clang12:
   extends: .build_common
   tags:
@@ -86,6 +95,14 @@ test win10-vs2019:
     - build win10-vs2019
   tags:
     - win10, visual-studio
+
+test win10-cygwin-gcc10:
+  extends: .test_common
+  needs: ["build win10-cygwin-gcc10"]
+  dependencies:
+    - build win10-cygwin-gc10
+  tags:
+    - gcc, mingw, win10
 
 test macos-clang12:
   extends: .test_common
