@@ -95,7 +95,7 @@ test macos-clang12:
   tags:
     - macos, clang
 
-  test macos-gcc10:
+test macos-gcc10:
   extends: .test_common
   needs: ["build macos-gcc10"]
   dependencies:
