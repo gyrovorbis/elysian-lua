@@ -6,6 +6,10 @@
   script:
     - mkdir build
     - cd build
+    - echo ${CC}
+    - echo ${CXX}
+    - echo ${PREFIX_PATH}
+    - env
     - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=${PREFIX_PATH} -G Ninja
     - ninja
     
