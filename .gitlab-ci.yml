@@ -46,7 +46,7 @@ build win10-cygwin-gcc10:
     - gcc, mingw, win10
   variables:
     CC: gcc
-    GCC: g++
+    CXX: g++
     PREFIX_PATH: C:/Qt/6.0.2/mingw81_64
 
 build macos-clang12:
