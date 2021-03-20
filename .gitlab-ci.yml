@@ -43,10 +43,19 @@ build win10-vs2019:
 build win10-cygwin-gcc10:
   extends: .build_common
   tags:
-    - gcc, mingw, win10
+    - gcc, win10
   variables:
     CC: gcc
     CXX: g++
+    PREFIX_PATH: C:/Qt/6.0.2/mingw81_64
+
+build win10-mingw8:
+  extends: .build_common
+  tags:
+    - mingw, win10
+  variables:
+    CC: C:/Qt/Tools/mingw810_64/bin/gcc.exe
+    CXX: C:/Qt/Tools/mingw810_64/bin/g++.exe
     PREFIX_PATH: C:/Qt/6.0.2/mingw81_64
 
 build macos-clang12:
@@ -102,7 +111,15 @@ test win10-cygwin-gcc10:
   dependencies:
     - build win10-cygwin-gcc10
   tags:
-    - gcc, mingw, win10
+    - gcc, win10
+
+test win10-mingw8:
+  extends: .test_common
+  needs: ["build win10-mingw8"]
+  dependencies:
+    - build win10-mingw8
+  tags:
+    - mingw, win10
 
 test macos-clang12:
   extends: .test_common
@@ -119,4 +136,5 @@ test macos-gcc10:
     - build macos-gcc10
   tags:
     - macos, gcc
+
 
