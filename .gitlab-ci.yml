@@ -100,7 +100,7 @@ test win10-cygwin-gcc10:
   extends: .test_common
   needs: ["build win10-cygwin-gcc10"]
   dependencies:
-    - build win10-cygwin-gc10
+    - build win10-cygwin-gcc10
   tags:
     - gcc, mingw, win10
 
