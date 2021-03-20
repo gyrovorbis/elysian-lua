@@ -30,14 +30,12 @@ build clang:
      CC: clang
      CXX: clang++
 
-build mingw:
+build visual-studio:
   extends: .build_common 
   tags:
-    - mingw
+    - visual-studio
   variables:   
-    CC: gcc
-    CXX: g++
-    PREFIX_PATH: /cygdrive/c/Qt/6.0.2/mingw81_64
+    PREFIX_PATH: C:/Qt/6.0.2/msvc2019_64
 
 .test_common:
   stage: test
