@@ -8,6 +8,7 @@
     - cd build
     - env
     - CC=${CC} CXX=${CXX} cmake ../ -DCMAKE_PREFIX_PATH=${PREFIX_PATH} -G Ninja
+    - ninja
 
     
 .build_linux:
