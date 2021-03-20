@@ -47,7 +47,7 @@ build macos-clang12:
   variables:
     CC: clang
     CXX: clang++
-    PREFIX_PATH: /Users/fgirgis/Qt/6.0.2/clang_64
+    PREFIX_PATH: /Users/falcogirgis/Qt/6.0.2/clang_64
 
 .test_common:
   stage: test
