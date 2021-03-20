@@ -49,6 +49,15 @@ build macos-clang12:
     CXX: clang++
     PREFIX_PATH: /Users/falcogirgis/Qt/6.0.2/clang_64
 
+build macos-gcc10:
+  extends: .build_common
+  tags:
+    - macos, gcc
+  variables:
+    CC: gcc-10
+    CXX: gcc-10++
+    PREFIX_PATH: /Users/falcogirgis/Qt/6.0.2/clang_64
+
 .test_common:
   stage: test
   script:
@@ -85,4 +94,12 @@ test macos-clang12:
     - build macos-clang12
   tags:
     - macos, clang
+
+  test macos-gcc10:
+  extends: .test_common
+  needs: ["build macos-gcc10"]
+  dependencies:
+    - build macos-gcc10
+  tags:
+    - macos, gcc
 
