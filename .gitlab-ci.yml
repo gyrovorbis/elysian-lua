@@ -26,7 +26,7 @@ build ubuntu20-gcc10:
 build ubuntu20-clang11:
   extends: .build_linux
   tags:
-    - master
+    - linux, clang
   variables:
      CC: clang
      CXX: clang++
@@ -34,7 +34,7 @@ build ubuntu20-clang11:
 build win10-vs2019:
   extends: .build_common 
   tags:
-    - visual-studio
+    - visual-studio, win10
   variables:   
     CC: cl
     CXX: cl
@@ -43,7 +43,7 @@ build win10-vs2019:
 build macos-clang12:
   extends: .build_common
   tags:
-    - macos
+    - macos, clang
   variables:
     CC: clang
     CXX: clang++
@@ -56,19 +56,19 @@ build macos-clang12:
     
 test ubuntu20-gcc10:
   extends: .test_common
-  needs: ["build ubuntu-gcc10"]
+  needs: ["build ubuntu20-gcc10"]
   dependencies:
     - build ubuntu20-gcc10
   tags:
-    - linux
+    - linux, gcc
     
 test ubuntu20-clang11:
   extends: .test_common
-  needs: ["build ubuntu-clang11"]
+  needs: ["build ubuntu20-clang11"]
   dependencies:
     - build ubuntu20-clang11
   tags:
-    - master
+    - linux, clang
 
 test win10-vs2019:
   extends: .test_common
@@ -76,4 +76,13 @@ test win10-vs2019:
   dependencies:
     - build win10-vs2019
   tags:
-    - win10
+    - win10, visual-studio
+
+test macos-clang12:
+  extends: .test_common
+  needs: ["build macos-clang12"]
+  dependencies:
+    - build macos-clang12
+  tags:
+    - macos, clang
+
