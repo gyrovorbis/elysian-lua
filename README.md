@@ -51,3 +51,6 @@ This library makes use of the ponter returned by lua_extraspace(), so if this is
 
 ## Deficiences ##
 ElysianLua's core functionality was pulled from our monolithic engine which had a hard requirement on the OOLua binding API. As we were already using (a heavily modified version of) it for our userdata binding, I did not see fit to implement userdata binding until the end. If you wish to use ElysianLua in a project, you will still need a binding API for binding your core classes to the Lua runtime. The best option available for this is currently the Sol3 project.
+
+## Testing ##
+Note that the testing folder utilizes a custom external testing framework with a dependency on Qt's QTest. This dependency has been removed from our tech stack, which now has it's own cross-platform test framework written from the ground-up. These tests need to be ported to the new model.
